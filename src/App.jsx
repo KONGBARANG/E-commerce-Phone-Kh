@@ -1,50 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// ទិន្នន័យគំរូនៃផលិតផល PHONE KH
-const initialProducts = [
-  {
-    id: 1,
-    name: 'iPhone 15 Pro Max',
-    category: 'Phone',
-    price: 1199,
-    image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 2,
-    name: 'Samsung Galaxy S24 Ultra',
-    category: 'Phone',
-    price: 1299,
-    image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 3,
-    name: 'Fast Charger 65W GaN',
-    category: 'Accessory',
-    price: 29,
-    image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 4,
-    name: 'Premium Leather Case',
-    category: 'Accessory',
-    price: 19,
-    image: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&q=80&w=400',
-  },
-];
-
 function App() {
-  const [products] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // មុខងារបន្ថែមទំនិញចូល Cart
+  // ១. ទាញយកទិន្នន័យផលិតផលពី Express Back-end (MongoDB Atlas)
+  useEffect(() => {
+    fetch('http://localhost:5000/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching products:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  // ២. មុខងារបន្ថែមទំនិញចូល Cart (ប្រើ _id ជំនួស id)
   const addToCart = (product) => {
-    const existing = cart.find((item) => item.id === product.id);
+    const existing = cart.find((item) => item._id === product._id);
     if (existing) {
       setCart(
         cart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
         )
       );
     } else {
@@ -52,27 +35,27 @@ function App() {
     }
   };
 
-  // មុខងារលុប ឬបន្ថយទំនិញពី Cart
+  // ៣. មុខងារលុប ឬបន្ថយទំនិញពី Cart (ប្រើ _id)
   const removeFromCart = (id) => {
-    const existing = cart.find((item) => item.id === id);
+    const existing = cart.find((item) => item._id === id);
     if (existing.quantity === 1) {
-      setCart(cart.filter((item) => item.id !== id));
+      setCart(cart.filter((item) => item._id !== id));
     } else {
       setCart(
         cart.map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity - 1 } : item
+          item._id === id ? { ...item, quantity: item.quantity - 1 } : item
         )
       );
     }
   };
 
-  // គណនាតម្លៃសរុប
+  // ៤. គណនាតម្លៃសរុប
   const totalPrice = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-  // Filter ផលិតផលតាម Search
+  // ៥. Filter ផលិតផលតាម Search
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -108,19 +91,24 @@ function App() {
         {/* Products Grid Section */}
         <section className="products-section">
           <h3>បញ្ជីផលិតផល (Products)</h3>
-          <div className="products-grid">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="product-card">
-                <img src={product.image} alt={product.name} />
-                <h4>{product.name}</h4>
-                <p className="category">{product.category}</p>
-                <p className="price">${product.price}</p>
-                <button onClick={() => addToCart(product)}>
-                  + បន្ថែមចូលកន្ត្រក
-                </button>
-              </div>
-            ))}
-          </div>
+          
+          {loading ? (
+            <p>កំពុងទាញយកទិន្នន័យពី Server...</p>
+          ) : (
+            <div className="products-grid">
+              {filteredProducts.map((product) => (
+                <div key={product._id} className="product-card">
+                  <img src={product.image} alt={product.name} />
+                  <h4>{product.name}</h4>
+                  <p className="category">{product.category}</p>
+                  <p className="price">${product.price}</p>
+                  <button onClick={() => addToCart(product)}>
+                    + បន្ថែមចូលកន្ត្រក
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Shopping Cart Section */}
@@ -131,13 +119,13 @@ function App() {
           ) : (
             <div className="cart-items">
               {cart.map((item) => (
-                <div key={item.id} className="cart-item">
+                <div key={item._id} className="cart-item">
                   <div>
                     <h5>{item.name}</h5>
                     <p>${item.price} x {item.quantity}</p>
                   </div>
                   <div className="cart-controls">
-                    <button onClick={() => removeFromCart(item.id)}>-</button>
+                    <button onClick={() => removeFromCart(item._id)}>-</button>
                     <span>{item.quantity}</span>
                     <button onClick={() => addToCart(item)}>+</button>
                   </div>

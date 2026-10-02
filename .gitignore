@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ignores node_modules ទាំងនៅខាងក្រៅ និងក្នុង backend
+node_modules/
+backend/node_modules/
+
+# Ignores .env ទាំងនៅខាងក្រៅ និងក្នុង backend
+.env
+backend/.env
+
+# Ignores build folder
+dist/
+
