@@ -42,16 +42,21 @@ async function request(path, { method = 'GET', body, auth = false, cart = false 
 export const fetchProducts = () => request('/products');
 
 export async function fetchCart() {
-  if (cartSessionRequest) return cartSessionRequest;
-  cartSessionRequest = (async () => {
-    const data = await request('/cart', { cart: true });
-    if (!localStorage.getItem(CART_KEY) || data.token) localStorage.setItem(CART_KEY, data.token);
-    return data.items;
-  })();
+  const authToken = localStorage.getItem(AUTH_KEY) || '';
+  if (cartSessionRequest?.authToken === authToken) return cartSessionRequest.promise;
+  const pending = {
+    authToken,
+    promise: (async () => {
+      const data = await request('/cart', { auth: true, cart: true });
+      if (data.token) localStorage.setItem(CART_KEY, data.token);
+      return data.items;
+    })(),
+  };
+  cartSessionRequest = pending;
   try {
-    return await cartSessionRequest;
+    return await pending.promise;
   } finally {
-    cartSessionRequest = null;
+    if (cartSessionRequest === pending) cartSessionRequest = null;
   }
 }
 
@@ -62,29 +67,27 @@ async function ensureCartSession() {
 
 export async function addCartItem(productId, quantity = 1) {
   await ensureCartSession();
-  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'POST', body: { quantity }, cart: true })).items;
+  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'POST', body: { quantity }, auth: true, cart: true })).items;
 }
 
 export async function setCartItemQuantity(productId, quantity) {
   await ensureCartSession();
-  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'PATCH', body: { quantity }, cart: true })).items;
+  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'PATCH', body: { quantity }, auth: true, cart: true })).items;
 }
 
 export async function deleteCartItem(productId) {
   await ensureCartSession();
-  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'DELETE', cart: true })).items;
+  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'DELETE', auth: true, cart: true })).items;
 }
 
 export async function registerAccount(details) {
-  await fetchCart();
-  const data = await request('/auth/register', { method: 'POST', body: details, cart: true });
+  const data = await request('/auth/register', { method: 'POST', body: details });
   localStorage.setItem(AUTH_KEY, data.token);
   return data.user;
 }
 
 export async function loginAccount(credentials) {
-  await fetchCart();
-  const data = await request('/auth/login', { method: 'POST', body: credentials, cart: true });
+  const data = await request('/auth/login', { method: 'POST', body: credentials });
   localStorage.setItem(AUTH_KEY, data.token);
   return data.user;
 }
@@ -100,11 +103,11 @@ export async function logoutAccount() {
 }
 
 export const fetchMyOrders = () => request('/orders/mine', { auth: true });
-export const fetchOrder = (orderNumber) => request(`/orders/${encodeURIComponent(orderNumber)}`, { cart: true });
+export const fetchOrder = (orderNumber) => request(`/orders/${encodeURIComponent(orderNumber)}`, { auth: true, cart: true });
 
 export async function createOrder(order) {
   await ensureCartSession();
-  return request('/orders', { method: 'POST', body: order, cart: true });
+  return request('/orders', { method: 'POST', body: order, auth: true, cart: true });
 }
 
 export const validateCoupon = (code) => request('/coupons/validate', { method: 'POST', body: { code } });
@@ -117,3 +120,5 @@ export const setProduct = (product) => request(`/products/${encodeURIComponent(p
 export const setUserRole = (id, role) => request(`/orders/admin/users/${encodeURIComponent(id)}`, { method: 'PATCH', body: { role }, auth: true });
 export const updateOrderStatus = (id, status) =>
   request(`/orders/admin/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status }, auth: true });
+export const updateOrderPaymentStatus = (id, paymentStatus) =>
+  request(`/orders/admin/${encodeURIComponent(id)}`, { method: 'PATCH', body: { paymentStatus }, auth: true });

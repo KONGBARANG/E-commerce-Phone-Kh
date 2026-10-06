@@ -3,6 +3,27 @@ const Cart = require('../models/cartModel');
 const Product = require('../models/productModel');
 const { hashToken } = require('../utils/auth');
 
+const getCartForRequest = async (req) => {
+  if (req.user) {
+    const carts = await Cart.find({ user: req.user._id }).sort({ updatedAt: -1 });
+    if (carts.length < 2) return carts[0] || null;
+    const [cart, ...duplicates] = carts;
+    const quantities = new Map();
+    for (const item of carts.flatMap((entry) => entry.items)) {
+      const productId = String(item.product);
+      quantities.set(productId, (quantities.get(productId) || 0) + item.quantity);
+    }
+    cart.items = [...quantities].map(([product, quantity]) => ({ product, quantity }));
+    cart.expiresAt = undefined;
+    await cart.save();
+    await Cart.deleteMany({ _id: { $in: duplicates.map((entry) => entry._id) }, user: req.user._id });
+    return cart;
+  }
+  const token = req.get('x-cart-token');
+  if (!token) return null;
+  return Cart.findOne({ tokenHash: hashToken(token), user: null });
+};
+
 const cartView = async (cart) => {
   await cart.populate('items.product');
   return cart.items
@@ -12,20 +33,29 @@ const cartView = async (cart) => {
 
 const getOrCreateCart = async (req, res) => {
   const providedToken = req.get('x-cart-token');
-  const token = providedToken || crypto.randomBytes(32).toString('hex');
-  const tokenHash = hashToken(token);
-  let cart = await Cart.findOne({ tokenHash }).select('+tokenHash');
+  let cart = await getCartForRequest(req);
+  let token;
   if (!cart) {
-    cart = await Cart.create({ tokenHash, items: [], expiresAt: new Date(Date.now() + 30 * 86400000) });
+    const tokenAlreadyUsed = providedToken && await Cart.exists({ tokenHash: hashToken(providedToken) });
+    token = req.user || !providedToken || tokenAlreadyUsed
+      ? crypto.randomBytes(32).toString('hex')
+      : providedToken;
+    cart = await Cart.create({
+      tokenHash: hashToken(token),
+      user: req.user?._id || null,
+      items: [],
+      ...(req.user ? {} : { expiresAt: new Date(Date.now() + 30 * 86400000) }),
+    });
   } else {
-    cart.expiresAt = new Date(Date.now() + 30 * 86400000);
+    if (req.user) cart.expiresAt = undefined;
+    else cart.expiresAt = new Date(Date.now() + 30 * 86400000);
     await cart.save();
   }
-  res.json({ token, items: await cartView(cart) });
+  res.json({ ...(token ? { token } : {}), items: await cartView(cart) });
 };
 
 const addItem = async (req, res) => {
-  const cart = await Cart.findOne({ tokenHash: hashToken(req.get('x-cart-token') || '') });
+  const cart = await getCartForRequest(req);
   if (!cart) return res.status(401).json({ message: 'Your cart session has expired. Refresh the page and try again.' });
   const { productId } = req.params;
   const quantity = Number(req.body.quantity || 1);
@@ -37,13 +67,14 @@ const addItem = async (req, res) => {
   if (nextQuantity > product.stock) return res.status(409).json({ message: `Only ${product.stock} unit(s) are available.` });
   if (line) line.quantity = nextQuantity;
   else cart.items.push({ product: product._id, quantity });
-  cart.expiresAt = new Date(Date.now() + 30 * 86400000);
+  if (req.user) cart.expiresAt = undefined;
+  else cart.expiresAt = new Date(Date.now() + 30 * 86400000);
   await cart.save();
   res.json({ items: await cartView(cart) });
 };
 
 const updateItem = async (req, res) => {
-  const cart = await Cart.findOne({ tokenHash: hashToken(req.get('x-cart-token') || '') });
+  const cart = await getCartForRequest(req);
   if (!cart) return res.status(401).json({ message: 'Your cart session has expired. Refresh the page and try again.' });
   const line = cart.items.find((item) => String(item.product) === req.params.productId);
   if (!line) return res.status(404).json({ message: 'Cart item not found.' });
@@ -61,7 +92,7 @@ const updateItem = async (req, res) => {
 };
 
 const removeItem = async (req, res) => {
-  const cart = await Cart.findOne({ tokenHash: hashToken(req.get('x-cart-token') || '') });
+  const cart = await getCartForRequest(req);
   if (!cart) return res.status(401).json({ message: 'Your cart session has expired. Refresh the page and try again.' });
   cart.items.pull({ product: req.params.productId });
   await cart.save();

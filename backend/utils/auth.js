@@ -48,9 +48,14 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
+const optionalAuth = (req, res, next) => {
+  if (!req.get('authorization')) return next();
+  return requireAuth(req, res, next);
+};
+
 const requireAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') return res.status(403).json({ message: 'Administrator access is required.' });
   next();
 };
 
-module.exports = { createPassword, createSession, hashToken, requireAdmin, requireAuth, verifyPassword };
+module.exports = { createPassword, createSession, hashToken, optionalAuth, requireAdmin, requireAuth, verifyPassword };

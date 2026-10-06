@@ -55,7 +55,6 @@ function Navbar() {
         <Link to="/products?brand=Samsung">Samsung</Link>
         <Link to="/products?category=Accessories">គ្រឿងបន្លាស់</Link>
         <Link to="/products?sort=price-asc">តម្លៃពិសេស</Link>
-        <Link className="admin-shortcut" to="/admin">ផ្ទាំងគ្រប់គ្រង →</Link>
       </div>
     </>
   );

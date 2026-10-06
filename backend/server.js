@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const Product = require('./models/productModel');
 const Coupon = require('./models/couponModel');
+const Cart = require('./models/cartModel');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
 const cartRoutes = require('./routes/cartRoutes');
@@ -46,6 +47,7 @@ app.use((error, _req, res, _next) => {
 
 const initializeDatabase = async () => {
   await connectDB();
+  await Cart.updateMany({ user: { $type: 'objectId' } }, { $unset: { expiresAt: 1 } });
   if (await Product.estimatedDocumentCount() === 0) {
     await Product.insertMany(seedProducts);
     console.log(`Seeded ${seedProducts.length} sample products.`);

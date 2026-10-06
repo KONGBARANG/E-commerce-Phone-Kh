@@ -10,7 +10,7 @@ const cartSchema = new mongoose.Schema(
         quantity: { type: Number, required: true, min: 1 },
       },
     ],
-    expiresAt: { type: Date, required: true },
+    expiresAt: { type: Date },
   },
   { timestamps: true }
 );

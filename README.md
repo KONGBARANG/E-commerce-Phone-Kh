@@ -43,7 +43,9 @@ This inserts 50 smartphone listings with unique SKUs and a different Unsplash ph
 
 ## MongoDB data
 
-Products, registered users, password hashes, sessions, guest/user carts, coupons, and orders are stored in MongoDB. Sample products are inserted only when the product collection is empty; the `PHONE10` coupon is created if it does not already exist. Orders validate stock and prices on the backend and update stock when submitted.
+Products, registered users, password hashes, sessions, guest/account carts, coupons, and orders are stored in MongoDB. Each signed-in account has its own persistent cart; registering a new account starts with an empty cart, and signing out does not delete the account's cart. Guest carts remain separate and expire after 30 days. Orders are linked to the signed-in user when available and remain in that user's order history after checkout.
+
+The administrator dashboard refreshes orders every 15 seconds while open and shows notices for new orders and newly recorded payments. KHQR/COD are currently recorded as payment methods only; payment is not verified automatically. An administrator must verify payment outside the app and mark it as paid in the order dashboard. Revenue totals include only orders marked paid.
 
 The browser stores only opaque authentication and cart-session tokens; it no longer treats browser storage as the source of product, cart, profile, or order data. Data previously created only in browser storage by the demo version is not automatically imported into MongoDB. Passwords are hashed with Node's `scrypt`. Only authenticated administrators can create, edit, and delete products, update order status, view users, and change user roles.
 

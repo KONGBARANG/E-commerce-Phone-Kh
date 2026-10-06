@@ -1,6 +1,5 @@
 const User = require('../models/userModel');
-const Cart = require('../models/cartModel');
-const { createPassword, createSession, hashToken, verifyPassword } = require('../utils/auth');
+const { createPassword, createSession, verifyPassword } = require('../utils/auth');
 
 const publicUser = (user) => ({
   id: user._id,
@@ -28,10 +27,6 @@ const register = async (req, res) => {
       passwordSalt: credentials.salt,
     });
     const token = await createSession(user);
-    const guestCartToken = req.get('x-cart-token');
-    if (guestCartToken) {
-      await Cart.updateOne({ tokenHash: hashToken(guestCartToken) }, { $set: { user: user._id } });
-    }
     res.status(201).json({ token, user: publicUser(user) });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: 'An account with this email already exists.' });
@@ -50,10 +45,6 @@ const login = async (req, res) => {
     return res.status(401).json({ message: 'Email or password is incorrect.' });
   }
   const token = await createSession(user);
-  const guestCartToken = req.get('x-cart-token');
-  if (guestCartToken) {
-    await Cart.updateOne({ tokenHash: hashToken(guestCartToken) }, { $set: { user: user._id } });
-  }
   res.json({ token, user: publicUser(user) });
 };
 

@@ -14,9 +14,10 @@ const createOrder = async (req, res) => {
   if (typeof address !== 'string' || !address.trim()) return res.status(400).json({ message: 'Shipping address is required.' });
   if (!['KHQR', 'COD'].includes(payment)) return res.status(400).json({ message: 'Select a supported payment method.' });
   const token = req.get('x-cart-token');
-  if (!token) return res.status(401).json({ message: 'Your cart session is missing. Refresh the page and try again.' });
-  const tokenHash = hashToken(token);
-  const cart = await Cart.findOne({ tokenHash }).populate('items.product');
+  if (!req.user && !token) return res.status(401).json({ message: 'Your cart session is missing. Refresh the page and try again.' });
+  const tokenHash = token ? hashToken(token) : '';
+  const cartQuery = req.user ? { user: req.user._id } : { tokenHash, user: null };
+  const cart = await Cart.findOne(cartQuery).populate('items.product');
   if (!cart || !cart.items.length) return res.status(400).json({ message: 'Your cart is empty.' });
 
   const lines = [];
@@ -65,10 +66,10 @@ const createOrder = async (req, res) => {
     }
     createdOrder = await Order.create({
       orderNumber,
-      user: cart.user,
+      user: req.user?._id || null,
       cartTokenHash: tokenHash,
-      customer: customer.trim(),
-      email: String(email).trim().toLowerCase(),
+      customer: req.user?.name || customer.trim(),
+      email: req.user?.email || String(email).trim().toLowerCase(),
       phone: phone.trim(),
       address: address.trim(),
       note: String(note).trim(),
@@ -97,26 +98,38 @@ const getMyOrders = async (req, res) => {
 
 const getOrderByNumber = async (req, res) => {
   const token = req.get('x-cart-token');
-  if (!token) return res.status(401).json({ message: 'Order access token is required.' });
-  const order = await Order.findOne({
-    orderNumber: req.params.orderNumber,
-    cartTokenHash: hashToken(token),
-  }).lean();
+  if (!req.user && !token) return res.status(401).json({ message: 'Order access token is required.' });
+  const ownership = req.user ? { user: req.user._id } : { cartTokenHash: hashToken(token), user: null };
+  const order = await Order.findOne({ orderNumber: req.params.orderNumber, ...ownership }).lean();
   if (!order) return res.status(404).json({ message: 'Order not found for this session.' });
   res.json(order);
 };
 
 const getAdminOrders = async (_req, res) => {
-  const orders = await Order.find({}).sort({ createdAt: -1 }).lean();
+  const orders = await Order.find({})
+    .populate('user', 'name email phone')
+    .sort({ createdAt: -1 })
+    .lean();
   res.json(orders);
 };
 
 const updateOrderStatus = async (req, res) => {
-  const statuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
-  if (!statuses.includes(req.body.status)) return res.status(400).json({ message: 'Unsupported order status.' });
+  const updates = {};
+  if (req.body.status !== undefined) {
+    const statuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+    if (!statuses.includes(req.body.status)) return res.status(400).json({ message: 'Unsupported order status.' });
+    updates.status = req.body.status;
+  }
+  if (req.body.paymentStatus !== undefined) {
+    if (!['Unpaid', 'Paid'].includes(req.body.paymentStatus)) {
+      return res.status(400).json({ message: 'Unsupported payment status.' });
+    }
+    updates.paymentStatus = req.body.paymentStatus;
+  }
+  if (!Object.keys(updates).length) return res.status(400).json({ message: 'Provide an order or payment status.' });
   const order = await Order.findOneAndUpdate(
     { orderNumber: req.params.orderNumber },
-    { status: req.body.status },
+    { $set: updates },
     { new: true, runValidators: true }
   );
   if (!order) return res.status(404).json({ message: 'Order not found.' });
@@ -127,13 +140,15 @@ const getAdminSummary = async (_req, res) => {
   const [productCount, userCount, orders] = await Promise.all([
     Product.countDocuments(),
     User.countDocuments(),
-    Order.find({}).select('total status').lean(),
+    Order.find({}).select('total status paymentStatus').lean(),
   ]);
   res.json({
     productCount,
     userCount,
     orderCount: orders.length,
-    sales: orders.filter((order) => order.status !== 'Cancelled').reduce((sum, order) => sum + order.total, 0),
+    sales: orders
+      .filter((order) => order.status !== 'Cancelled' && order.paymentStatus === 'Paid')
+      .reduce((sum, order) => sum + order.total, 0),
     completedCount: orders.filter((order) => order.status === 'Completed').length,
     processingCount: orders.filter((order) => order.status === 'Processing').length,
   });

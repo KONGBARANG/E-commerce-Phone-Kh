@@ -1,12 +1,17 @@
 import { ShopProvider } from './context/ShopContext';
 import Navbar from './components/Navbar';
 import AppRoutes from './routes/AppRoutes';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useShop } from './context/useShop';
 import './App.css';
 
 function AppLayout() {
   const { apiError, setApiError } = useShop();
+  const { pathname } = useLocation();
+  if (pathname.startsWith('/admin')) {
+    return <div className="app-container"><AppRoutes /></div>;
+  }
+
   return (
     <div className="app-container">
       <Navbar />

@@ -11,6 +11,7 @@ const orderSchema = new mongoose.Schema(
     address: { type: String, required: true, trim: true },
     note: { type: String, default: '', trim: true },
     payment: { type: String, enum: ['KHQR', 'COD'], required: true },
+    paymentStatus: { type: String, enum: ['Unpaid', 'Paid'], default: 'Unpaid' },
     items: [
       {
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },

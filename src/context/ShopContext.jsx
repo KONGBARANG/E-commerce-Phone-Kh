@@ -11,6 +11,7 @@ import {
   fetchCurrentUser,
   fetchMyOrders,
   fetchProducts,
+  updateOrderPaymentStatus,
   loginAccount,
   logoutAccount,
   registerAccount,
@@ -53,24 +54,32 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     let active = true;
     const initialize = async () => {
-      const results = await Promise.allSettled([fetchProducts(), fetchCart()]);
-      if (!active) return;
-      if (results[0].status === 'fulfilled') setProducts(results[0].value);
-      if (results[0].status === 'rejected') setApiError(results[0].reason.message);
-      if (results[1].status === 'fulfilled') setCart(results[1].value);
-      if (results[1].status === 'rejected') setApiError(results[1].reason.message);
+      const productsRequest = fetchProducts();
+      let authenticated = false;
       if (localStorage.getItem('phonekh-auth-token')) {
         try {
           const profile = await fetchCurrentUser();
           if (!active) return;
           setUser(profile.user);
-          setOrders(await fetchMyOrders());
+          authenticated = true;
         } catch (error) {
           if (!active) return;
           localStorage.removeItem('phonekh-auth-token');
           setApiError(error.message);
         }
       }
+      const results = await Promise.allSettled([
+        productsRequest,
+        fetchCart(),
+        ...(authenticated ? [fetchMyOrders()] : []),
+      ]);
+      if (!active) return;
+      if (results[0].status === 'fulfilled') setProducts(results[0].value);
+      if (results[0].status === 'rejected') setApiError(results[0].reason.message);
+      if (results[1].status === 'fulfilled') setCart(results[1].value);
+      if (results[1].status === 'rejected') setApiError(results[1].reason.message);
+      if (authenticated && results[2].status === 'fulfilled') setOrders(results[2].value);
+      if (authenticated && results[2].status === 'rejected') setApiError(results[2].reason.message);
       if (active) setLoading(false);
     };
     initialize().catch((error) => {
@@ -170,6 +179,12 @@ export function ShopProvider({ children }) {
     return order;
   }, []);
 
+  const setPaymentStatus = useCallback(async (id, paymentStatus) => {
+    const order = await updateOrderPaymentStatus(id, paymentStatus);
+    setOrders((current) => current.map((entry) => entry._id === order._id ? order : entry));
+    return order;
+  }, []);
+
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
   const cartTotal = cart.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
   const value = useMemo(() => ({
@@ -177,12 +192,12 @@ export function ShopProvider({ children }) {
     cart, setCart, addToCart, updateQuantity, removeFromCart, refreshCart, cartCount, cartTotal,
     orders, setOrders, refreshOrders, placeOrder,
     user, setUser, signIn, signUp, signOut,
-    adminUsers, adminSummary, refreshAdmin, setOrderStatus,
+    adminUsers, adminSummary, refreshAdmin, setOrderStatus, setPaymentStatus,
     loading, apiError, setApiError,
   }), [
     products, refreshProducts, cart, addToCart, updateQuantity, removeFromCart, refreshCart,
     cartCount, cartTotal, orders, refreshOrders, placeOrder, user, signIn, signUp, signOut,
-    adminUsers, adminSummary, refreshAdmin, setOrderStatus, loading, apiError,
+    adminUsers, adminSummary, refreshAdmin, setOrderStatus, setPaymentStatus, loading, apiError,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
