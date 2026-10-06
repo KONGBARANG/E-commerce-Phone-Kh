@@ -1,35 +1,10 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 
 function AboutPage() {
-  return (
-    <div style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', color: '#fff' }}>
-      <h1 style={{ color: '#00f2fe', textAlign: 'center', marginBottom: '20px' }}>
-        អំពីហាង PHONE KH
-      </h1>
-      
-      <div style={{ backgroundColor: '#1a2238', padding: '30px', borderRadius: '12px', lineHeight: '1.8' }}>
-        <h3>👋 ស្វាគមន៍មកកាន់ PHONE KH</h3>
-        <p>
-          PHONE KH គឺជាហាងលក់ទូរស័ព្ទដៃឆ្លាតវៃ (Smartphones) និងគ្រឿងបន្លាស់អេឡិចត្រូនិចដែលមានគុណភាពខ្ពស់ 
-          ព្រមទាំងមានការធានាត្រឹមត្រូវជូនអតិថិជនទាំងអស់។
-        </p>
-
-        <h4 style={{ color: '#00f2fe', marginTop: '20px' }}>🎯 បេសកកម្មរបស់យើង</h4>
-        <p>
-          ផ្តល់ជូននូវផលិតផលបច្ចេកវិទ្យាទំនើបៗ តម្លៃសមរម្យ និងសេវាកម្មអតិថិជនល្អបំផុត 
-          ដើម្បីឱ្យការរស់នៅបែបឌីជីថលរបស់អ្នកកាន់តែងាយស្រួល។
-        </p>
-
-        <h4 style={{ color: '#00f2fe', marginTop: '20px' }}>📍 ព័ត៌មានទំនាក់ទំនង</h4>
-        <ul>
-          <li><strong>អាសយដ្ឋាន៖</strong> រាជធានីភ្នំពេញ, ព្រះរាជាណាចក្រកម្ពុជា</li>
-          <li><strong>លេខទូរស័ព្ទ៖</strong> 012 345 678 / 098 765 432</li>
-          <li><strong>អ៊ីមែល៖</strong> info@phonekh.com</li>
-          <li><strong>ម៉ោងធ្វើការ៖</strong> រៀងរាល់ថ្ងៃ 8:00 AM - 8:00 PM</li>
-        </ul>
-      </div>
-    </div>
-  );
+  return <main className="about-page">
+    <header className="about-hero"><span className="eyebrow">អំពី PHONE KH</span><h1>បច្ចេកវិទ្យា សម្រាប់មនុស្សគ្រប់គ្នា</h1><p>យើងជឿថាបច្ចេកវិទ្យាល្អគួរតែមានគុណភាព តម្លៃសមរម្យ និងងាយស្រួលសម្រាប់មនុស្សគ្រប់គ្នា។</p></header>
+    <section className="content-wrap about-content"><div><span className="eyebrow">រឿងរ៉ាវរបស់យើង</span><h2>ជម្រើសបច្ចេកវិទ្យាដែលអ្នកទុកចិត្ត</h2><p>PHONE KH ជាហាងលក់ទូរស័ព្ទ និងគ្រឿងបន្លាស់បច្ចេកវិទ្យានៅកម្ពុជា។ យើងជ្រើសរើសផលិតផលដោយយកចិត្តទុកដាក់ ដើម្បីផ្ដល់ជូនអតិថិជននូវទំនិញមានប្រភពច្បាស់លាស់ ការធានាត្រឹមត្រូវ និងសេវាកម្មដែលគិតពីតម្រូវការរបស់អ្នក។</p><p>ក្រុមការងាររបស់យើងត្រៀមផ្ដល់ជំនួយមុន និងក្រោយពេលទិញ ដើម្បីឱ្យអ្នកប្រើប្រាស់ផលិតផលថ្មីដោយទំនុកចិត្ត។</p><Link className="button-primary" to="/products">ស្វែងរកផលិតផល →</Link></div><div className="about-cards"><div><b>2,500+</b><small>អតិថិជនពេញចិត្ត</small></div><div><b>100%</b><small>ផលិតផលមានគុណភាព</small></div><div><b>12 ខែ</b><small>ការធានាផលិតផល</small></div><div><b>7 ថ្ងៃ</b><small>សេវាកម្មអតិថិជន</small></div></div></section>
+  </main>;
 }
 
 export default AboutPage;
