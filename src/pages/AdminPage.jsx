@@ -3,6 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 import { createProduct as saveProduct, deleteProduct as removeProduct, setProduct, setUserRole } from '../services/api';
 
+const defaultProductImage = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85';
+const parseList = (value) => String(value || '').split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+
 const sections = [
   { path: '/admin', label: 'ទិដ្ឋភាពទូទៅ', icon: '▦' },
   { path: '/admin/products', label: 'គ្រប់គ្រងផលិតផល', icon: '◇' },
@@ -19,6 +22,10 @@ function AdminPage() {
   const { pathname } = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [imagePreview, setImagePreview] = useState(defaultProductImage);
+  const [galleryPreview, setGalleryPreview] = useState([]);
+  const [imageFitPreview, setImageFitPreview] = useState('contain');
+  const [imageBackgroundPreview, setImageBackgroundPreview] = useState('light');
   const [notice, setNotice] = useState('');
   const [orderNotice, setOrderNotice] = useState('');
   const previousOrders = useRef(null);
@@ -63,13 +70,39 @@ function AdminPage() {
   const createProduct = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const image = String(form.get('image')).trim() || defaultProductImage;
+    const images = [...new Set(parseList(form.get('images')).filter((url) => url !== image))];
+    const colors = [...new Set(parseList(form.get('colors')))];
+    if (images.length > 3) {
+      setError('អាចបន្ថែមរូបភាពបន្ថែមបានអតិបរមា 3 រូប (សរុប 4 រូប)។');
+      return;
+    }
+    if (colors.length > 8) {
+      setError('អាចបន្ថែមពណ៌បានអតិបរមា 8 ពណ៌។');
+      return;
+    }
+    if (images.some((url) => {
+      try {
+        return !['http:', 'https:'].includes(new URL(url).protocol);
+      } catch {
+        return true;
+      }
+    })) {
+      setError('តំណរូបភាពបន្ថែមត្រូវតែជា URL ដែលចាប់ផ្ដើមដោយ http:// ឬ https://។');
+      return;
+    }
+    setError('');
     const product = {
       name: String(form.get('name')).trim(),
       brand: String(form.get('brand')).trim(),
       category: String(form.get('category')),
       price: Number(form.get('price')),
       ...(form.get('oldPrice') ? { oldPrice: Number(form.get('oldPrice')) } : {}),
-      image: String(form.get('image')).trim() || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85',
+      image,
+      images,
+      colors,
+      imageFit: String(form.get('imageFit')),
+      imageBackground: String(form.get('imageBackground')),
       description: String(form.get('description')).trim(),
       stock: Number(form.get('stock')),
       storage: String(form.get('storage')).trim(),
@@ -125,14 +158,62 @@ function AdminPage() {
     }
   };
 
+  const toggleProductForm = () => {
+    if (showForm) {
+      setShowForm(false);
+      setEditingProduct(null);
+      return;
+    }
+    setEditingProduct(null);
+    setImagePreview(defaultProductImage);
+    setGalleryPreview([]);
+    setImageFitPreview('contain');
+    setImageBackgroundPreview('light');
+    setShowForm(true);
+  };
+
+  const editProduct = (product) => {
+    setEditingProduct(product);
+    setImagePreview(product.image || defaultProductImage);
+    setGalleryPreview(product.images || []);
+    setImageFitPreview(product.imageFit || 'contain');
+    setImageBackgroundPreview(product.imageBackground || 'light');
+    setShowForm(true);
+  };
+
   const renderProducts = () => <section className="admin-panel">
-    <div className="panel-heading"><div><h2>បញ្ជីផលិតផល</h2><p>បន្ថែម និងគ្រប់គ្រងស្តុកផលិតផលនៅក្នុង Database</p></div><button className="button-primary" onClick={() => { setEditingProduct(null); setShowForm(!showForm); }}>{showForm ? 'បោះបង់' : '＋ បន្ថែមផលិតផល'}</button></div>
+    <div className="panel-heading"><div><h2>បញ្ជីផលិតផល</h2><p>បន្ថែម និងគ្រប់គ្រងស្តុកផលិតផលនៅក្នុង Database</p></div><button className="button-primary" onClick={toggleProductForm}>{showForm ? 'បោះបង់' : '＋ បន្ថែមផលិតផល'}</button></div>
     {notice && <div className="success-box">{notice}</div>}
-    {showForm && <form className="admin-product-form" onSubmit={createProduct}><label>ឈ្មោះផលិតផល<input name="name" required defaultValue={editingProduct?.name || ''} /></label><label>ម៉ាក<input name="brand" required defaultValue={editingProduct?.brand || ''} /></label><label>ប្រភេទ<select name="category" defaultValue={editingProduct?.category || 'Smartphone'}><option>Smartphone</option><option>Accessories</option></select></label><label>តម្លៃ ($)<input name="price" type="number" min="0" required defaultValue={editingProduct?.price || ''} /></label><label>តម្លៃដើម ($)<input name="oldPrice" type="number" min="0" defaultValue={editingProduct?.oldPrice || ''} /></label><label>ស្តុក<input name="stock" type="number" min="0" defaultValue={editingProduct?.stock ?? 1} required /></label><label>រូបភាព URL<input name="image" type="url" defaultValue={editingProduct?.image || ''} /></label><label>អង្គផ្ទុកទិន្នន័យ<input name="storage" defaultValue={editingProduct?.storage || ''} /></label><label>RAM<input name="ram" defaultValue={editingProduct?.ram || ''} /></label><label className="span-two">ការពិពណ៌នា<input name="description" defaultValue={editingProduct?.description || ''} /></label><button className="button-primary" type="submit">{editingProduct ? 'រក្សាទុកការកែប្រែ' : 'រក្សាទុកផលិតផល'}</button></form>}
-    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>ផលិតផល</th><th>ប្រភេទ</th><th>តម្លៃ</th><th>ស្តុក</th><th>សកម្មភាព</th></tr></thead><tbody>{products.map((product) => <tr key={product._id}><td><div className="admin-product-name"><img src={product.image} alt="" /><span><b>{product.name}</b><small>{product.brand}</small></span></div></td><td>{product.category}</td><td>${product.price}</td><td><span className={product.stock < 5 ? 'stock-low' : 'stock-ok'}>{product.stock} គ្រឿង</span></td><td><button className="table-action" onClick={() => { setEditingProduct(product); setShowForm(true); }}>កែ</button> <button className="table-action" aria-label={`លុប ${product.name}`} onClick={() => removeProductFromStore(product._id)}>លុប</button></td></tr>)}</tbody></table></div>
+    {showForm && <form key={editingProduct?._id || 'new-product'} className="admin-product-form" onSubmit={createProduct}>
+      <label>ឈ្មោះផលិតផល<input name="name" required defaultValue={editingProduct?.name || ''} /></label>
+      <label>ម៉ាក<input name="brand" required defaultValue={editingProduct?.brand || ''} /></label>
+      <label>ប្រភេទ<select name="category" defaultValue={editingProduct?.category || 'Smartphone'}><option>Smartphone</option><option>Accessories</option></select></label>
+      <label>តម្លៃ ($)<input name="price" type="number" min="0" required defaultValue={editingProduct?.price || ''} /></label>
+      <label>តម្លៃដើម ($)<input name="oldPrice" type="number" min="0" defaultValue={editingProduct?.oldPrice || ''} /></label>
+      <label>ស្តុក<input name="stock" type="number" min="0" defaultValue={editingProduct?.stock ?? 1} required /></label>
+      <label className="span-two">ពណ៌ដែលមាន (បំបែកដោយក្បៀស)<input name="colors" defaultValue={editingProduct?.colors?.join(', ') || ''} placeholder="ឧ. ខ្មៅ, ប្រាក់, ខៀវ" /></label>
+      <label className="span-two">រូបភាពចម្បង (URL)<input name="image" type="url" defaultValue={editingProduct?.image || defaultProductImage} onChange={(event) => setImagePreview(event.target.value || defaultProductImage)} /></label>
+      <label className="span-two">រូបភាពបន្ថែម (URL មួយក្នុងមួយបន្ទាត់)
+        <textarea name="images" rows="3" maxLength="3000" defaultValue={editingProduct?.images?.join('\n') || ''} placeholder={'https://example.com/phone-front.jpg\nhttps://example.com/phone-back.jpg'} onChange={(event) => setGalleryPreview(parseList(event.target.value).slice(0, 3))} />
+        <small>បន្ថែមបាន 3 រូបទៀត — សរុបអតិបរមា 4 រូប។</small>
+      </label>
+      <label>របៀបបង្ហាញរូបភាព<select name="imageFit" value={imageFitPreview} onChange={(event) => setImageFitPreview(event.target.value)}><option value="contain">បង្ហាញរូបទាំងមូល</option><option value="cover">ពង្រីកបំពេញផ្ទៃ</option></select></label>
+      <label>ផ្ទៃខាងក្រោយ<select name="imageBackground" value={imageBackgroundPreview} onChange={(event) => setImageBackgroundPreview(event.target.value)}><option value="light">ភ្លឺ</option><option value="dark">ងងឹត</option></select></label>
+      <div className="admin-image-preview span-two">
+        <div className="admin-image-preview-gallery">
+          {[imagePreview || defaultProductImage, ...galleryPreview].slice(0, 4).map((image, index) => <div className="admin-image-preview-frame" data-image-fit={imageFitPreview} data-image-background={imageBackgroundPreview} key={`${image}-${index}`}><img src={image} alt={`រូបភាពផលិតផល ${index + 1}`} /></div>)}
+        </div>
+        <div><b>មើលរូបភាពជាមុន</b><small>អតិថិជនអាចចុចលើរូបតូចៗ ដើម្បីមើលរូបនីមួយៗ។</small></div>
+      </div>
+      <label>អង្គផ្ទុកទិន្នន័យ<input name="storage" defaultValue={editingProduct?.storage || ''} /></label>
+      <label>RAM<input name="ram" defaultValue={editingProduct?.ram || ''} /></label>
+      <label className="span-two">ការពិពណ៌នា<input name="description" defaultValue={editingProduct?.description || ''} /></label>
+      <button className="button-primary" type="submit">{editingProduct ? 'រក្សាទុកការកែប្រែ' : 'រក្សាទុកផលិតផល'}</button>
+    </form>}
+    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>ផលិតផល</th><th>ប្រភេទ</th><th>តម្លៃ</th><th>ស្តុក</th><th>សកម្មភាព</th></tr></thead><tbody>{products.map((product) => <tr key={product._id}><td><div className="admin-product-name"><img src={product.image} alt="" /><span><b>{product.name}</b><small>{product.brand}</small></span></div></td><td>{product.category}</td><td>${product.price}</td><td><span className={product.stock < 5 ? 'stock-low' : 'stock-ok'}>{product.stock} គ្រឿង</span></td><td><button className="table-action" onClick={() => editProduct(product)}>កែ</button> <button className="table-action" aria-label={`លុប ${product.name}`} onClick={() => removeProductFromStore(product._id)}>លុប</button></td></tr>)}</tbody></table></div>
   </section>;
 
-  const renderOrders = () => <section className="admin-panel"><div className="panel-heading"><div><h2>ការកុម្ម៉ង់ទាំងអស់</h2><p>បញ្ជីនេះធ្វើបច្ចុប្បន្នភាពរៀងរាល់ 15 វិនាទី។ សូមផ្ទៀងផ្ទាត់ការបង់ប្រាក់ក្រៅប្រព័ន្ធ មុនសម្គាល់ថាបានបង់។</p></div></div>{orders.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/ស្ថានភាពបង់</th><th>ស្ថានភាពកុម្ម៉ង់</th></tr></thead><tbody>{orders.map((order) => <tr key={order._id}><td><b>{order.orderNumber}</b></td><td><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small></td><td>{order.phone}</td><td>${order.total}</td><td>{order.payment}<br /><select className="status-select" aria-label={`ស្ថានភាពទូទាត់ ${order.orderNumber}`} value={order.paymentStatus || 'Unpaid'} onChange={(event) => changePaymentStatus(order.orderNumber, event.target.value)}><option value="Unpaid">មិនទាន់បង់</option><option value="Paid">បានបង់ប្រាក់</option></select></td><td><select className="status-select" aria-label={`ស្ថានភាពការកុម្ម៉ង់ ${order.orderNumber}`} value={order.status} onChange={(event) => changeStatus(order.orderNumber, event.target.value)}><option>Pending</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select></td></tr>)}</tbody></table></div> : <div className="admin-empty">មិនទាន់មានការកុម្ម៉ង់ទេ។ ការកុម្ម៉ង់ថ្មីនឹងបង្ហាញនៅទីនេះ។</div>}</section>;
+  const renderOrders = () => <section className="admin-panel"><div className="panel-heading"><div><h2>ការកុម្ម៉ង់ទាំងអស់</h2><p>បញ្ជីនេះធ្វើបច្ចុប្បន្នភាពរៀងរាល់ 15 វិនាទី។ សូមផ្ទៀងផ្ទាត់ការបង់ប្រាក់ក្រៅប្រព័ន្ធ មុនសម្គាល់ថាបានបង់។</p></div></div>{orders.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/ស្ថានភាពបង់</th><th>ស្ថានភាពកុម្ម៉ង់</th></tr></thead><tbody>{orders.map((order) => <tr key={order._id}><td><b>{order.orderNumber}</b></td><td><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small><small>{(order.items || []).map((item) => `${item.name}${item.color ? ` · ពណ៌ ${item.color}` : ''} × ${item.quantity}`).join(', ')}</small></td><td>{order.phone}</td><td>${order.total}</td><td>{order.payment}<br /><select className="status-select" aria-label={`ស្ថានភាពទូទាត់ ${order.orderNumber}`} value={order.paymentStatus || 'Unpaid'} onChange={(event) => changePaymentStatus(order.orderNumber, event.target.value)}><option value="Unpaid">មិនទាន់បង់</option><option value="Paid">បានបង់ប្រាក់</option></select></td><td><select className="status-select" aria-label={`ស្ថានភាពការកុម្ម៉ង់ ${order.orderNumber}`} value={order.status} onChange={(event) => changeStatus(order.orderNumber, event.target.value)}><option>Pending</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select></td></tr>)}</tbody></table></div> : <div className="admin-empty">មិនទាន់មានការកុម្ម៉ង់ទេ។ ការកុម្ម៉ង់ថ្មីនឹងបង្ហាញនៅទីនេះ។</div>}</section>;
 
   const changeUserRole = async (id, role) => {
     try {

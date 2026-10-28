@@ -11,7 +11,7 @@ const createProduct = async (req, res) => {
 };
 
 const updateProduct = async (req, res) => {
-  const fields = ['name', 'brand', 'category', 'price', 'oldPrice', 'image', 'description', 'storage', 'ram', 'stock', 'rating', 'badge'];
+  const fields = ['name', 'brand', 'category', 'price', 'oldPrice', 'image', 'images', 'colors', 'imageFit', 'imageBackground', 'description', 'storage', 'ram', 'stock', 'rating', 'badge'];
   const updates = Object.fromEntries(fields.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
   const product = await Product.findByIdAndUpdate(req.params.id, updates, {
     new: true,

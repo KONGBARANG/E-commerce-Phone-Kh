@@ -9,6 +9,18 @@ const productSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     oldPrice: { type: Number, min: 0 },
     image: { type: String, required: true, trim: true },
+    images: {
+      type: [{ type: String, trim: true }],
+      default: [],
+      validate: (images) => images.length <= 3,
+    },
+    colors: {
+      type: [{ type: String, trim: true }],
+      default: [],
+      validate: (colors) => colors.length <= 8,
+    },
+    imageFit: { type: String, enum: ['contain', 'cover'], default: 'contain' },
+    imageBackground: { type: String, enum: ['light', 'dark'], default: 'light' },
     description: { type: String, default: '', trim: true, maxlength: 3000 },
     storage: { type: String, default: '' },
     ram: { type: String, default: '' },

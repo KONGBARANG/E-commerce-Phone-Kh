@@ -65,7 +65,7 @@ export function ProductsPage({ search = false }) {
           <div className="filter-label">តម្លៃ ($)</div>
           <div className="price-inputs"><input aria-label="តម្លៃទាបបំផុត" type="number" min="0" placeholder="ពី" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /><span>—</span><input aria-label="តម្លៃខ្ពស់បំផុត" type="number" min="0" placeholder="ដល់" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /></div>
           <label>អង្គផ្ទុកទិន្នន័យ
-            <select value={storage} onChange={(event) => setStorage(event.target.value)}><option value="all">គ្រប់ទំហំ</option><option>128GB</option><option>256GB</option></select>
+            <select value={storage} onChange={(event) => setStorage(event.target.value)}><option value="all">គ្រប់ទំហំ</option><option>128GB</option><option>256GB</option><option>512GB</option><option>1TB</option><option>2TB</option></select>
           </label>
           <div className="filter-note">ផលិតផលទាំងអស់មានការធានា និងការត្រួតពិនិត្យគុណភាព។</div>
         </aside>
@@ -83,22 +83,36 @@ export function ProductsPage({ search = false }) {
 export function ProductDetailsPage() {
   const { id } = useParams();
   const { products, addToCart } = useShop();
-  const navigate = useNavigate();
-  const [quantity, setQuantity] = useState(1);
   const product = products.find((item) => item._id === id);
   if (!product) return <div className="empty-state"><h2>រកមិនឃើញផលិតផល</h2><Link className="button-primary" to="/products">ត្រឡប់ទៅផលិតផល</Link></div>;
+  return <ProductDetails key={product._id} product={product} addToCart={addToCart} />;
+}
+
+function ProductDetails({ product, addToCart }) {
+  const navigate = useNavigate();
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || '');
+  const images = [...new Set([product.image, ...(product.images || [])].filter(Boolean))].slice(0, 4);
+  const addSelectedToCart = () => addToCart(product, quantity, selectedColor);
 
   return (
     <main className="content-wrap details-page">
       <div className="breadcrumbs"><Link to="/">ទំព័រដើម</Link><span>/</span><Link to="/products">ផលិតផល</Link><span>/</span>{product.name}</div>
       <div className="product-details">
-        <div className="detail-image"><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={product.image} alt={product.name} /></div>
+        <div className="detail-gallery">
+          <div className="detail-image" data-image-fit={product.imageFit || 'contain'} data-image-background={product.imageBackground || 'light'}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={images[selectedImage] || product.image} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} /></div>
+          {images.length > 1 && <div className="detail-thumbnails" aria-label="រូបភាពផលិតផល">
+            {images.map((image, index) => <button className={selectedImage === index ? 'active' : ''} type="button" onClick={() => setSelectedImage(index)} aria-label={`មើលរូបភាព ${index + 1}`} aria-pressed={selectedImage === index} key={`${image}-${index}`}><img src={image} alt="" /></button>)}
+          </div>}
+        </div>
         <div className="detail-copy"><span className="eyebrow">{product.brand} · {product.category}</span><h1>{product.name}</h1><div className="detail-rating">★★★★★ <span>{product.rating || 4.8} · មានការវាយតម្លៃពីអតិថិជន</span></div>
           <div className="detail-price">{money(product.price)} {product.oldPrice && <del>{money(product.oldPrice)}</del>}</div>
           <p className="detail-description">{product.description || 'ផលិតផលគុណភាពខ្ពស់ មានការធានាពេញលេញ និងរួចរាល់សម្រាប់ដឹកជញ្ជូន។'}</p>
+          {product.colors?.length > 0 && <fieldset className="color-options"><legend>ជ្រើសរើសពណ៌ <span>{selectedColor}</span></legend><div>{product.colors.map((color) => <button className={selectedColor === color ? 'selected' : ''} type="button" onClick={() => { setSelectedColor(color); setSelectedImage(0); }} aria-pressed={selectedColor === color} key={color}>{color}</button>)}</div></fieldset>}
           <div className="spec-grid"><div><small>អង្គផ្ទុកទិន្នន័យ</small><b>{product.storage || '—'}</b></div><div><small>RAM</small><b>{product.ram || '—'}</b></div><div><small>ស្តុក</small><b>{product.stock > 0 ? `${product.stock} គ្រឿង` : 'ទាក់ទងមកយើង'}</b></div></div>
-          <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}>＋</button></div><button className="button-primary" onClick={() => addToCart(product, quantity)}>បន្ថែមទៅកន្ត្រក</button></div>
-          <button className="button-outline full-button" onClick={async () => { const updated = await addToCart(product, quantity); if (updated) navigate('/checkout'); }}>ទិញឥឡូវនេះ →</button>
+          <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}>＋</button></div><button className="button-primary" onClick={addSelectedToCart}>បន្ថែមទៅកន្ត្រក</button></div>
+          <button className="button-outline full-button" onClick={async () => { const updated = await addSelectedToCart(); if (updated) navigate('/checkout'); }}>ទិញឥឡូវនេះ →</button>
           <div className="delivery-note">✓ ដឹកជញ្ជូនឥតគិតថ្លៃលើការកុម្ម៉ង់ $300 ឡើងទៅ<br />✓ ធានាផលិតផល 12 ខែ · អាចប្ដូរបានក្នុង 7 ថ្ងៃ</div>
         </div>
       </div>
@@ -130,7 +144,7 @@ export function CartPage() {
     <main className="content-wrap cart-page"><PageIntro eyebrow="ទំនិញដែលអ្នកជ្រើសរើស" title="កន្ត្រកទំនិញ" description={`${cart.length} ប្រភេទផលិតផលក្នុងកន្ត្រករបស់អ្នក`} />
       {loading ? <p className="loading-note">កំពុងទាញកន្ត្រកពី Database...</p> : cart.length === 0 ? <div className="empty-state"><span>♧</span><h2>កន្ត្រករបស់អ្នកនៅទទេ</h2><p>ស្វែងរកផលិតផលដែលអ្នកចូលចិត្ត ហើយបន្ថែមចូលកន្ត្រក។</p><Link className="button-primary" to="/products">ចាប់ផ្ដើមទិញទំនិញ →</Link></div> :
         <div className="cart-layout"><section className="cart-table"><div className="cart-table-head"><span>ផលិតផល</span><span>តម្លៃ</span><span>ចំនួន</span><span>សរុប</span></div>
-          {cart.map((item) => <div className="cart-row" key={item._id}><div className="cart-product"><Link to={`/products/${item._id}`}><img src={item.image} alt={item.name} /></Link><div><Link to={`/products/${item._id}`}><b>{item.name}</b></Link><small>{item.brand} · {item.storage || 'ផលិតផលមានគុណភាព'}</small><button className="remove-link" onClick={() => removeFromCart(item._id)}>ដកចេញ</button></div></div><span>{money(item.price)}</span><div className="quantity-picker"><button onClick={() => updateQuantity(item._id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => updateQuantity(item._id, item.quantity + 1)}>＋</button></div><b>{money(item.price * item.quantity)}</b></div>)}
+          {cart.map((item) => <div className="cart-row" key={`${item._id}-${item.selectedColor}`}><div className="cart-product"><Link to={`/products/${item._id}`}><img src={item.image} alt={item.name} /></Link><div><Link to={`/products/${item._id}`}><b>{item.name}</b></Link><small>{[item.brand, item.storage, item.selectedColor && `ពណ៌ ${item.selectedColor}`].filter(Boolean).join(' · ') || 'ផលិតផលមានគុណភាព'}</small><button className="remove-link" onClick={() => removeFromCart(item)}>ដកចេញ</button></div></div><span>{money(item.price)}</span><div className="quantity-picker"><button onClick={() => updateQuantity(item, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => updateQuantity(item, item.quantity + 1)}>＋</button></div><b>{money(item.price * item.quantity)}</b></div>)}
           <Link className="continue-link" to="/products">← បន្តការទិញទំនិញ</Link>
         </section>
         <aside className="order-summary"><h2>សរុបការកុម្ម៉ង់</h2><div className="coupon-box"><label htmlFor="coupon">លេខកូដបញ្ចុះតម្លៃ</label><div><input id="coupon" value={coupon} onChange={(event) => setCoupon(event.target.value)} placeholder="បញ្ចូលកូដ" /><button type="button" onClick={applyCoupon}>អនុវត្ត</button></div>{couponMessage && <small className={discount ? 'success-text' : 'error-text'}>{couponMessage}</small>}</div><div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{discount > 0 && <div className="summary-line discount-line"><span>បញ្ចុះតម្លៃ ({discount * 100}%)</span><b>−{money(cartTotal * discount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុប</span><b>{money(cartTotal * (1 - discount) + shipping)}</b></div><Link className="button-primary full-button" to={`/checkout${discountCode ? `?coupon=${encodeURIComponent(discountCode)}` : ''}`}>បន្តទៅការទូទាត់ →</Link><p className="secure-note">🔒 ការទូទាត់ប្រកបដោយសុវត្ថិភាព</p></aside></div>}
@@ -192,7 +206,7 @@ export function CheckoutPage() {
         <div className="payment-options">{[['KHQR', '▦', 'ABA KHQR', 'ស្កេនកូដ KHQR ពេលបញ្ជាក់ការកុម្ម៉ង់'], ['COD', '៛', 'បង់ប្រាក់ពេលទទួល', 'ទូទាត់ជាសាច់ប្រាក់ជាមួយអ្នកដឹកជញ្ជូន']].map(([value, icon, title, desc]) => <label className={`payment-option ${payment === value ? 'selected' : ''}`} key={value}><input type="radio" name="payment" value={value} checked={payment === value} onChange={() => setPayment(value)} /><span className="payment-icon">{icon}</span><span><b>{title}</b><small>{desc}</small></span><i>{payment === value ? '●' : '○'}</i></label>)}</div>
       </section>
       <button className="button-primary full-button place-order" type="submit" disabled={submitting}>{submitting ? 'កំពុងរក្សាទុក...' : 'បញ្ជាក់ការកុម្ម៉ង់ →'}</button><p className="secure-note">🔒 ព័ត៌មានរបស់អ្នកត្រូវបានការពារដោយសុវត្ថិភាព</p>
-    </div><aside className="order-summary checkout-summary"><h2>ការកុម្ម៉ង់របស់អ្នក</h2>{cart.map((item) => <div className="checkout-item" key={item._id}><img src={item.image} alt={item.name} /><div><b>{item.name}</b><small>ចំនួន {item.quantity}</small></div><b>{money(item.price * item.quantity)}</b></div>)}<div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{coupon && <div className="summary-line discount-line"><span>កូដ {coupon.code} ({coupon.discountPercent}%)</span><b>−{money(discount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុបត្រូវបង់</span><b>{money(cartTotal - discount + shipping)}</b></div><p className="secure-note">បង់ប្រាក់មានសុវត្ថិភាព · ទំនិញមានការធានា</p></aside></form>
+    </div><aside className="order-summary checkout-summary"><h2>ការកុម្ម៉ង់របស់អ្នក</h2>{cart.map((item) => <div className="checkout-item" key={`${item._id}-${item.selectedColor}`}><img src={item.image} alt={item.name} /><div><b>{item.name}</b><small>{item.selectedColor ? `ពណ៌ ${item.selectedColor} · ` : ''}ចំនួន ${item.quantity}</small></div><b>{money(item.price * item.quantity)}</b></div>)}<div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{coupon && <div className="summary-line discount-line"><span>កូដ {coupon.code} ({coupon.discountPercent}%)</span><b>−{money(discount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុបត្រូវបង់</span><b>{money(cartTotal - discount + shipping)}</b></div><p className="secure-note">បង់ប្រាក់មានសុវត្ថិភាព · ទំនិញមានការធានា</p></aside></form>
   </main>;
 }
 
@@ -205,7 +219,7 @@ export function OrderCompletePage() {
     if (order) return;
     fetchOrder(id).then(setOrder).catch((requestError) => setError(requestError.message));
   }, [id, order]);
-  return <main className="empty-state order-complete"><span className="complete-check">✓</span><span className="eyebrow">ការកុម្ម៉ង់ជោគជ័យ</span><h1>សូមអរគុណសម្រាប់ការកុម្ម៉ង់!</h1><p>យើងបានទទួលការកុម្ម៉ង់របស់អ្នក ហើយកំពុងរៀបចំទំនិញ។</p><div className="order-number">លេខកុម្ម៉ង់ <b>{id}</b>{order && <><span>សរុប</span><b>{money(order.total)}</b><span>ស្ថានភាព</span><b>{order.status}</b></>}</div>{error && <p className="error-text">{error}</p>}<Link className="button-primary" to={order?.user ? '/account' : '/products'}>{order?.user ? 'មើលស្ថានភាពការកុម្ម៉ង់' : 'បន្តទិញទំនិញ'}</Link></main>;
+  return <main className="empty-state order-complete"><span className="complete-check">✓</span><span className="eyebrow">ការកុម្ម៉ង់ជោគជ័យ</span><h1>សូមអរគុណសម្រាប់ការកុម្ម៉ង់!</h1><p>យើងបានទទួលការកុម្ម៉ង់របស់អ្នក ហើយកំពុងរៀបចំទំនិញ។</p><div className="order-number">លេខកុម្ម៉ង់ <b>{id}</b>{order && <><span>សរុប</span><b>{money(order.total)}</b><span>ស្ថានភាព</span><b>{order.status}</b></>}</div>{order?.items?.length > 0 && <div className="order-complete-items">{order.items.map((item, index) => <div key={`${item.product || item.name}-${index}`}><span>{item.name}{item.color ? ` · ពណ៌ ${item.color}` : ''} × {item.quantity}</span><b>{money(item.price * item.quantity)}</b></div>)}</div>}{error && <p className="error-text">{error}</p>}<Link className="button-primary" to={order?.user ? '/account' : '/products'}>{order?.user ? 'មើលស្ថានភាពការកុម្ម៉ង់' : 'បន្តទិញទំនិញ'}</Link></main>;
 }
 
 export function LoginPage({ register = false }) {

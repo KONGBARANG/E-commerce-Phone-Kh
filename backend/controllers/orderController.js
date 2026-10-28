@@ -26,12 +26,17 @@ const createOrder = async (req, res) => {
     const product = line.product;
     if (!product) return res.status(409).json({ message: 'A product in your cart is no longer available.' });
     if (line.quantity > product.stock) return res.status(409).json({ message: `Only ${product.stock} unit(s) of ${product.name} are available.` });
+    const color = line.color || '';
+    if (product.colors.length ? !product.colors.includes(color) : Boolean(color)) {
+      return res.status(409).json({ message: `Please choose an available color for ${product.name}.` });
+    }
     lines.push({
       product: product._id,
       name: product.name,
       image: product.image,
       brand: product.brand,
       storage: product.storage,
+      color,
       price: product.price,
       quantity: line.quantity,
     });

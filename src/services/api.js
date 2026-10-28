@@ -65,19 +65,21 @@ async function ensureCartSession() {
   await fetchCart();
 }
 
-export async function addCartItem(productId, quantity = 1) {
+export async function addCartItem(productId, quantity = 1, color = '') {
   await ensureCartSession();
-  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'POST', body: { quantity }, auth: true, cart: true })).items;
+  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'POST', body: { quantity, color }, auth: true, cart: true })).items;
 }
 
-export async function setCartItemQuantity(productId, quantity) {
+export async function setCartItemQuantity(item, quantity) {
   await ensureCartSession();
-  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'PATCH', body: { quantity }, auth: true, cart: true })).items;
+  const color = new URLSearchParams({ color: item.selectedColor || '' });
+  return (await request(`/cart/${encodeURIComponent(item._id)}?${color}`, { method: 'PATCH', body: { quantity }, auth: true, cart: true })).items;
 }
 
-export async function deleteCartItem(productId) {
+export async function deleteCartItem(item) {
   await ensureCartSession();
-  return (await request(`/cart/${encodeURIComponent(productId)}`, { method: 'DELETE', auth: true, cart: true })).items;
+  const color = new URLSearchParams({ color: item.selectedColor || '' });
+  return (await request(`/cart/${encodeURIComponent(item._id)}?${color}`, { method: 'DELETE', auth: true, cart: true })).items;
 }
 
 export async function registerAccount(details) {

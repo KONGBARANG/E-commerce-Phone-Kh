@@ -92,9 +92,9 @@ export function ShopProvider({ children }) {
     return () => { active = false; };
   }, []);
 
-  const addToCart = useCallback(async (product, quantity = 1) => {
+  const addToCart = useCallback(async (product, quantity = 1, color = '') => {
     try {
-      const result = await addCartItem(product._id, quantity);
+      const result = await addCartItem(product._id, quantity, color);
       setCart(result);
       setApiError('');
       return result;
@@ -104,9 +104,9 @@ export function ShopProvider({ children }) {
     }
   }, []);
 
-  const updateQuantity = useCallback(async (id, quantity) => {
+  const updateQuantity = useCallback(async (item, quantity) => {
     try {
-      const result = await setCartItemQuantity(id, quantity);
+      const result = await setCartItemQuantity(item, quantity);
       setCart(result);
       setApiError('');
       return result;
@@ -116,9 +116,9 @@ export function ShopProvider({ children }) {
     }
   }, []);
 
-  const removeFromCart = useCallback(async (id) => {
+  const removeFromCart = useCallback(async (item) => {
     try {
-      const result = await deleteCartItem(id);
+      const result = await deleteCartItem(item);
       setCart(result);
       setApiError('');
       return result;

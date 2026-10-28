@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ShopProvider } from './context/ShopContext';
 import Navbar from './components/Navbar';
 import AppRoutes from './routes/AppRoutes';
@@ -8,13 +9,29 @@ import './App.css';
 function AppLayout() {
   const { apiError, setApiError } = useShop();
   const { pathname } = useLocation();
+  const [themeMode, setThemeMode] = useState(() => {
+    const savedTheme = localStorage.getItem('phonekh-theme');
+    return ['light', 'dark', 'system'].includes(savedTheme) ? savedTheme : 'system';
+  });
+  const [systemTheme, setSystemTheme] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const theme = themeMode === 'system' ? systemTheme : themeMode;
+
+  useEffect(() => {
+    localStorage.setItem('phonekh-theme', themeMode);
+    if (themeMode !== 'system') return undefined;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateSystemTheme = (event) => setSystemTheme(event.matches ? 'dark' : 'light');
+    mediaQuery.addEventListener('change', updateSystemTheme);
+    return () => mediaQuery.removeEventListener('change', updateSystemTheme);
+  }, [themeMode]);
+
   if (pathname.startsWith('/admin')) {
-    return <div className="app-container"><AppRoutes /></div>;
+    return <div className="app-container" data-theme={theme}><AppRoutes /></div>;
   }
 
   return (
-    <div className="app-container">
-      <Navbar />
+    <div className="app-container" data-theme={theme}>
+      <Navbar theme={theme} themeMode={themeMode} setThemeMode={setThemeMode} />
       {apiError && <div className="api-alert" role="alert"><span>{apiError}</span><button onClick={() => setApiError('')} aria-label="បិទសារកំហុស">×</button></div>}
       <AppRoutes />
       <footer className="footer">
