@@ -20,6 +20,10 @@ export function ProductsPage({ search = false }) {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [storage, setStorage] = useState('all');
+  const brands = useMemo(
+    () => [...new Set(products.map((product) => product.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
 
   const filtered = useMemo(() => {
     const matches = products.filter((product) => {
@@ -50,7 +54,7 @@ export function ProductsPage({ search = false }) {
           <div className="filter-title"><h3>តម្រងផលិតផល</h3><button onClick={() => { setParams({}); setMinPrice(''); setMaxPrice(''); setStorage('all'); }}>សម្អាត</button></div>
           <label>ម៉ាក
             <select value={brand} onChange={(event) => update('brand', event.target.value)}>
-              <option value="all">ម៉ាកទាំងអស់</option><option>Apple</option><option>Samsung</option><option>Anker</option>
+              <option value="all">ម៉ាកទាំងអស់</option>{brands.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label>ប្រភេទ

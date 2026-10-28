@@ -39,7 +39,7 @@ After configuring MongoDB, run the following from the `backend/` directory:
 npm run seed:phones
 ```
 
-This inserts 50 smartphone listings with unique SKUs and a different Unsplash phone photograph for every listing. Names describe only visible photo details; exact brands/models and storage/RAM are not verified. The photos are representative and are not guaranteed to be official manufacturer images. It is safe to rerun: existing records are matched by their SKU or previous model name, renamed, and cleared of unverified brand/model/storage/RAM claims. Existing prices and stock are preserved; confirm the actual device details and current supplier pricing before selling.
+This inserts 50 smartphone listings with unique SKUs and a different Unsplash phone photograph for every listing. Listings include catalog model names, brands, and storage/RAM values; verify these details and current supplier pricing before selling. The photos are representative and are not guaranteed to show the listed model or be official manufacturer images. It is safe to rerun: existing records are matched by their SKU or previous model name and updated with catalog details while existing prices and stock are preserved.
 
 ## MongoDB data
 

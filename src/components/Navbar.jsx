@@ -41,11 +41,23 @@ function Navbar() {
           )}
         </form>
         <div className="header-actions">
-          <Link className="icon-link account-link" to={user ? '/account' : '/login'} aria-label="គណនី">
-            <span>♙</span><small>{user ? user.name : 'គណនី'}</small>
+          <Link className="icon-link account-link" to={user ? '/account' : '/login'} aria-label={user ? `គណនី ${user.name}` : 'ចូលគណនី'}>
+            <span className="header-action-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+              </svg>
+            </span>
+            <span className="header-action-copy"><small>គណនី</small><b>{user ? user.name : 'ចូលគណនី'}</b></span>
           </Link>
           <Link className="icon-link cart-link" to="/cart" aria-label={`កន្ត្រក ${cartCount} មុខ`}>
-            <span>♧<i>{cartCount}</i></span><small>កន្ត្រក</small>
+            <span className="header-action-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.5L21 8H6" />
+                <path d="M10 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM18 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+              </svg>
+              <i>{cartCount}</i>
+            </span>
+            <span className="header-action-copy"><small>កន្ត្រក</small><b>{cartCount} មុខ</b></span>
           </Link>
         </div>
       </header>

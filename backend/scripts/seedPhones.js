@@ -35,7 +35,7 @@ async function seedPhones() {
   if (uniqueImages.length !== phoneCatalog.length || uniqueImages.some((image) => !image.startsWith('https://images.unsplash.com/photo-'))) {
     throw new Error(`Expected 50 unique Unsplash phone photo URLs in the database; found ${uniqueImages.length}.`);
   }
-  console.log('Catalog names now describe their photos; unverified brand/model/storage/RAM fields were removed.');
+  console.log('Catalog phone models, brands, storage, and RAM were saved; product photos are representative only.');
 }
 
 seedPhones()
