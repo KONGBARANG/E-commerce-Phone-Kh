@@ -52,21 +52,25 @@ export function ProductsPage({ search = false }) {
       <div className="listing-layout">
         <aside className="filter-panel">
           <div className="filter-title"><h3>តម្រងផលិតផល</h3><button onClick={() => { setParams({}); setMinPrice(''); setMaxPrice(''); setStorage('all'); }}>សម្អាត</button></div>
-          <label>ម៉ាក
-            <select value={brand} onChange={(event) => update('brand', event.target.value)}>
-              <option value="all">ម៉ាកទាំងអស់</option>{brands.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </label>
-          <label>ប្រភេទ
-            <select value={category} onChange={(event) => update('category', event.target.value)}>
-              <option value="all">ប្រភេទទាំងអស់</option><option value="Smartphone">ស្មាតហ្វូន</option><option value="Accessories">គ្រឿងបន្លាស់</option>
-            </select>
-          </label>
-          <div className="filter-label">តម្លៃ ($)</div>
-          <div className="price-inputs"><input aria-label="តម្លៃទាបបំផុត" type="number" min="0" placeholder="ពី" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /><span>—</span><input aria-label="តម្លៃខ្ពស់បំផុត" type="number" min="0" placeholder="ដល់" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /></div>
-          <label>អង្គផ្ទុកទិន្នន័យ
-            <select value={storage} onChange={(event) => setStorage(event.target.value)}><option value="all">គ្រប់ទំហំ</option><option>128GB</option><option>256GB</option><option>512GB</option><option>1TB</option><option>2TB</option></select>
-          </label>
+          <div className="filter-fields">
+            <label>ម៉ាក
+              <select value={brand} onChange={(event) => update('brand', event.target.value)}>
+                <option value="all">ម៉ាកទាំងអស់</option>{brands.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label>ប្រភេទ
+              <select value={category} onChange={(event) => update('category', event.target.value)}>
+                <option value="all">ប្រភេទទាំងអស់</option><option value="Smartphone">ស្មាតហ្វូន</option><option value="Accessories">គ្រឿងបន្លាស់</option>
+              </select>
+            </label>
+            <div className="price-filter">
+              <div className="filter-label">តម្លៃ ($)</div>
+              <div className="price-inputs"><input aria-label="តម្លៃទាបបំផុត" type="number" min="0" placeholder="ពី" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /><span>—</span><input aria-label="តម្លៃខ្ពស់បំផុត" type="number" min="0" placeholder="ដល់" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /></div>
+            </div>
+            <label>អង្គផ្ទុកទិន្នន័យ
+              <select value={storage} onChange={(event) => setStorage(event.target.value)}><option value="all">គ្រប់ទំហំ</option><option>128GB</option><option>256GB</option><option>512GB</option><option>1TB</option><option>2TB</option></select>
+            </label>
+          </div>
           <div className="filter-note">ផលិតផលទាំងអស់មានការធានា និងការត្រួតពិនិត្យគុណភាព។</div>
         </aside>
         <section className="listing-results">
