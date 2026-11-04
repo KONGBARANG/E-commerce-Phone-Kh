@@ -2,7 +2,7 @@ const User = require('../models/userModel');
 const { publicUser } = require('./authController');
 
 const getUsers = async (_req, res) => {
-  const users = await User.find({}).sort({ createdAt: -1 }).lean();
+  const users = await User.find({}).select('-profileImage').sort({ createdAt: -1 }).lean();
   res.json(users.map((user) => publicUser(user)));
 };
 
