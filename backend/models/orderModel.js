@@ -11,6 +11,9 @@ const orderSchema = new mongoose.Schema(
     address: { type: String, required: true, trim: true },
     note: { type: String, default: '', trim: true },
     payment: { type: String, enum: ['KHQR', 'COD'], required: true },
+    paymentProvider: { type: String, enum: ['', 'ABA', 'ACLEDA'], default: '' },
+    paymentReceipt: { type: String, default: '', select: false, maxlength: 5600000 },
+    paymentReceiptUploaded: { type: Boolean, default: false },
     paymentStatus: { type: String, enum: ['Unpaid', 'Paid'], default: 'Unpaid' },
     items: [
       {

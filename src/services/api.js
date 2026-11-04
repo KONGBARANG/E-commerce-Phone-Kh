@@ -95,6 +95,7 @@ export async function loginAccount(credentials) {
 }
 
 export const fetchCurrentUser = () => request('/auth/me', { auth: true });
+export const updateUserProfile = (profile) => request('/auth/profile', { method: 'PATCH', body: profile, auth: true });
 
 export async function logoutAccount() {
   try {
@@ -112,10 +113,12 @@ export async function createOrder(order) {
   return request('/orders', { method: 'POST', body: order, auth: true, cart: true });
 }
 
-export const validateCoupon = (code) => request('/coupons/validate', { method: 'POST', body: { code } });
+export const validateCoupon = (code, subtotal, auth = false) =>
+  request('/coupons/validate', { method: 'POST', body: { code, subtotal }, auth });
 export const createProduct = (product) => request('/products', { method: 'POST', body: product, auth: true });
 export const deleteProduct = (id) => request(`/products/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
 export const fetchAdminOrders = () => request('/orders/admin', { auth: true });
+export const fetchAdminPaymentReceipt = (orderNumber) => request(`/orders/admin/${encodeURIComponent(orderNumber)}/payment-receipt`, { auth: true });
 export const fetchAdminUsers = () => request('/orders/admin/users', { auth: true });
 export const fetchAdminSummary = () => request('/orders/admin/summary', { auth: true });
 export const setProduct = (product) => request(`/products/${encodeURIComponent(product._id)}`, { method: 'PATCH', body: product, auth: true });

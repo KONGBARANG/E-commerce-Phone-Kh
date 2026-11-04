@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import CartIcon from '../components/CartIcon';
 import { useShop } from '../context/useShop';
 import { fetchOrder, validateCoupon } from '../services/api';
 
@@ -8,6 +9,35 @@ const money = (amount) => `$${Number(amount || 0).toLocaleString('en-US', { mini
 
 function PageIntro({ eyebrow, title, description }) {
   return <header className="page-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</header>;
+}
+
+async function prepareProfileImage(file) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('សូមជ្រើសរើសរូបភាព JPEG, PNG ឬ WebP។');
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error('រូបភាពដើមមិនអាចធំជាង 10 MB បានទេ។');
+  }
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = imageUrl;
+    await image.decode();
+    const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('មិនអាចអានរូបភាពដែលបានជ្រើសរើសទេ។');
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+    const encodedImage = dataUrl.split(',')[1] || '';
+    const imageSize = Math.floor(encodedImage.length * 3 / 4);
+    if (imageSize > 1024 * 1024) throw new Error('មិនអាចបង្រួមរូបភាពឲ្យតូចជាង 1 MB បានទេ។ សូមជ្រើសរូបផ្សេង។');
+    return dataUrl;
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 }
 
 export function ProductsPage({ search = false, categoryDefault = '' }) {
@@ -164,20 +194,28 @@ function ProductDetails({ product, addToCart }) {
 }
 
 export function CartPage() {
-  const { cart, updateQuantity, removeFromCart, cartTotal, loading } = useShop();
+  const { cart, updateQuantity, removeFromCart, cartTotal, loading, user } = useShop();
   const [coupon, setCoupon] = useState('');
+  const [couponEdited, setCouponEdited] = useState(false);
   const [discount, setDiscount] = useState(0);
+  const [discountMinimumSubtotal, setDiscountMinimumSubtotal] = useState(0);
   const [discountCode, setDiscountCode] = useState('');
   const [couponMessage, setCouponMessage] = useState('');
-  const shipping = cartTotal * (1 - discount) >= 300 || cartTotal === 0 ? 0 : 3;
+  const activeCouponCode = couponEdited ? coupon : user?.welcomeCouponCode || coupon;
+  const applicableDiscount = cartTotal >= discountMinimumSubtotal ? discount : 0;
+  const couponBelowMinimum = Boolean(discountCode) && cartTotal < discountMinimumSubtotal;
+  const shipping = cartTotal - applicableDiscount >= 300 || cartTotal === 0 ? 0 : 3;
   const applyCoupon = async () => {
     try {
-      const validCoupon = await validateCoupon(coupon);
-      setDiscount(validCoupon.discountPercent / 100);
+      const validCoupon = await validateCoupon(activeCouponCode, cartTotal, Boolean(user));
+      const couponDiscount = validCoupon.discountAmount || Math.round(cartTotal * validCoupon.discountPercent) / 100;
+      setDiscount(couponDiscount);
+      setDiscountMinimumSubtotal(validCoupon.minimumSubtotal || 0);
       setDiscountCode(validCoupon.code);
       setCouponMessage(`កូដ ${validCoupon.code} ត្រូវបានអនុវត្តដោយជោគជ័យ។`);
     } catch (error) {
       setDiscount(0);
+      setDiscountMinimumSubtotal(0);
       setDiscountCode('');
       setCouponMessage(error.message);
     }
@@ -185,12 +223,12 @@ export function CartPage() {
 
   return (
     <main className="content-wrap cart-page"><PageIntro eyebrow="ទំនិញដែលអ្នកជ្រើសរើស" title="កន្ត្រកទំនិញ" description={`${cart.length} ប្រភេទផលិតផលក្នុងកន្ត្រករបស់អ្នក`} />
-      {loading ? <p className="loading-note">កំពុងទាញកន្ត្រកពី Database...</p> : cart.length === 0 ? <div className="empty-state"><span>♧</span><h2>កន្ត្រករបស់អ្នកនៅទទេ</h2><p>ស្វែងរកផលិតផលដែលអ្នកចូលចិត្ត ហើយបន្ថែមចូលកន្ត្រក។</p><Link className="button-primary" to="/products">ចាប់ផ្ដើមទិញទំនិញ →</Link></div> :
+      {loading ? <p className="loading-note">កំពុងទាញកន្ត្រកពី Database...</p> : cart.length === 0 ? <div className="empty-state"><span className="empty-state-cart-icon"><CartIcon /></span><h2>កន្ត្រករបស់អ្នកនៅទទេ</h2><p>ស្វែងរកផលិតផលដែលអ្នកចូលចិត្ត ហើយបន្ថែមចូលកន្ត្រក។</p><Link className="button-primary" to="/products">ចាប់ផ្ដើមទិញទំនិញ →</Link></div> :
         <div className="cart-layout"><section className="cart-table"><div className="cart-table-head"><span>ផលិតផល</span><span>តម្លៃ</span><span>ចំនួន</span><span>សរុប</span></div>
           {cart.map((item) => <div className="cart-row" key={`${item._id}-${item.selectedColor}`}><div className="cart-product"><Link to={`/products/${item._id}`}><img src={item.image} alt={item.name} /></Link><div><Link to={`/products/${item._id}`}><b>{item.name}</b></Link><small>{[item.brand, item.storage, item.selectedColor && `ពណ៌ ${item.selectedColor}`].filter(Boolean).join(' · ') || 'ផលិតផលមានគុណភាព'}</small><button className="remove-link" onClick={() => removeFromCart(item)}>ដកចេញ</button></div></div><span>{money(item.price)}</span><div className="quantity-picker"><button onClick={() => updateQuantity(item, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => updateQuantity(item, item.quantity + 1)}>＋</button></div><b>{money(item.price * item.quantity)}</b></div>)}
           <Link className="continue-link" to="/products">← បន្តការទិញទំនិញ</Link>
         </section>
-        <aside className="order-summary"><h2>សរុបការកុម្ម៉ង់</h2><div className="coupon-box"><label htmlFor="coupon">លេខកូដបញ្ចុះតម្លៃ</label><div><input id="coupon" value={coupon} onChange={(event) => setCoupon(event.target.value)} placeholder="បញ្ចូលកូដ" /><button type="button" onClick={applyCoupon}>អនុវត្ត</button></div>{couponMessage && <small className={discount ? 'success-text' : 'error-text'}>{couponMessage}</small>}</div><div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{discount > 0 && <div className="summary-line discount-line"><span>បញ្ចុះតម្លៃ ({discount * 100}%)</span><b>−{money(cartTotal * discount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុប</span><b>{money(cartTotal * (1 - discount) + shipping)}</b></div><Link className="button-primary full-button" to={`/checkout${discountCode ? `?coupon=${encodeURIComponent(discountCode)}` : ''}`}>បន្តទៅការទូទាត់ →</Link><p className="secure-note">🔒 ការទូទាត់ប្រកបដោយសុវត្ថិភាព</p></aside></div>}
+        <aside className="order-summary"><h2>សរុបការកុម្ម៉ង់</h2><div className="coupon-box"><label htmlFor="coupon">លេខកូដបញ្ចុះតម្លៃ</label><div><input id="coupon" value={activeCouponCode} onChange={(event) => { setCoupon(event.target.value); setCouponEdited(true); }} placeholder="បញ្ចូលកូដ" /><button type="button" onClick={applyCoupon}>អនុវត្ត</button></div>{user?.welcomeCouponCode && <small>លេខកូដស្វាគមន៍៖ បញ្ចុះ $50 លើសរុបផលិតផលចាប់ពី $500 និងប្រើបាន ២ ដង។</small>}{couponMessage && <small className={discount && !couponBelowMinimum ? 'success-text' : 'error-text'}>{couponBelowMinimum ? `កូដនេះត្រូវការសរុបផលិតផលយ៉ាងតិច ${money(discountMinimumSubtotal)}។` : couponMessage}</small>}</div><div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{applicableDiscount > 0 && <div className="summary-line discount-line"><span>បញ្ចុះតម្លៃ{discountCode ? ` (${discountCode})` : ''}</span><b>−{money(applicableDiscount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុប</span><b>{money(cartTotal - applicableDiscount + shipping)}</b></div><Link className="button-primary full-button" to={`/checkout${discountCode ? `?coupon=${encodeURIComponent(discountCode)}` : ''}`}>បន្តទៅការទូទាត់ →</Link><p className="secure-note">🔒 ការទូទាត់ប្រកបដោយសុវត្ថិភាព</p></aside></div>}
     </main>
   );
 }
@@ -199,19 +237,31 @@ export function CheckoutPage() {
   const { cart, cartTotal, user, placeOrder, loading } = useShop();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [payment, setPayment] = useState('KHQR');
+  const [payment, setPayment] = useState('ABA');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState('');
+  const [receiptFileName, setReceiptFileName] = useState('');
   const couponCode = searchParams.get('coupon') || '';
+  const currentUserId = user?.id || null;
+  const isAuthenticated = Boolean(currentUserId);
   const [validatedCoupon, setValidatedCoupon] = useState(null);
   useEffect(() => {
     if (!couponCode) return;
-    validateCoupon(couponCode)
-      .then(setValidatedCoupon)
-      .catch((requestError) => setError(requestError.message));
-  }, [couponCode]);
-  const coupon = validatedCoupon?.code === couponCode ? validatedCoupon : null;
-  const discount = coupon ? Math.round(cartTotal * coupon.discountPercent) / 100 : 0;
+    let active = true;
+    validateCoupon(couponCode, cartTotal, isAuthenticated)
+      .then((result) => { if (active) { setValidatedCoupon({ ...result, validatedSubtotal: cartTotal, validatedUserId: currentUserId }); setError(''); } })
+      .catch((requestError) => { if (active) setError(requestError.message); });
+    return () => { active = false; };
+  }, [couponCode, cartTotal, isAuthenticated, currentUserId]);
+  const coupon = validatedCoupon?.code === couponCode
+    && validatedCoupon.validatedSubtotal === cartTotal
+    && validatedCoupon.validatedUserId === currentUserId
+    ? validatedCoupon
+    : null;
+  const discount = coupon
+    ? coupon.discountAmount || Math.round(cartTotal * coupon.discountPercent) / 100
+    : 0;
   const shipping = cartTotal - discount >= 300 ? 0 : 3;
   const submit = async (event) => {
     event.preventDefault();
@@ -226,7 +276,9 @@ export function CheckoutPage() {
         phone: String(data.get('phone') || '').trim(),
         address: `${data.get('address')}, ${data.get('city')}`,
         note: data.get('note'),
-        payment,
+        payment: payment === 'COD' ? 'COD' : 'KHQR',
+        paymentProvider: payment === 'COD' ? '' : payment,
+        paymentReceipt,
         couponCode,
       });
       navigate(`/order-complete/${order.orderNumber}`, { state: { order } });
@@ -237,7 +289,7 @@ export function CheckoutPage() {
     }
   };
   if (loading) return <main className="empty-state checkout-empty"><p className="loading-note">កំពុងទាញព័ត៌មានពី Database...</p></main>;
-  if (!cart.length) return <main className="empty-state checkout-empty"><span>▣</span><h2>កន្ត្រកទំនិញនៅទទេ</h2><Link className="button-primary" to="/products">ស្វែងរកផលិតផល</Link></main>;
+  if (!cart.length) return <main className="empty-state checkout-empty"><span className="empty-state-cart-icon"><CartIcon /></span><h2>កន្ត្រកទំនិញនៅទទេ</h2><Link className="button-primary" to="/products">ស្វែងរកផលិតផល</Link></main>;
 
   return <main className="content-wrap checkout-page"><PageIntro eyebrow="បញ្ជាក់ព័ត៌មាន" title="ទូទាត់ និងបញ្ជាទិញ" description="បំពេញព័ត៌មានដឹកជញ្ជូន និងជ្រើសរើសវិធីទូទាត់ដែលអ្នកពេញចិត្ត។" />
     <form className="checkout-layout" onSubmit={submit}><div className="checkout-form">
@@ -246,10 +298,11 @@ export function CheckoutPage() {
         <div className="form-grid"><label>ឈ្មោះពេញ<input required name="name" defaultValue={user?.name || ''} placeholder="ឧ. សុខា សុវណ្ណ" /></label><label>លេខទូរស័ព្ទ<input required name="phone" type="tel" defaultValue={user?.phone || ''} placeholder="+855 12 345 678" /></label><label className="span-two">អាសយដ្ឋាន<input required name="address" placeholder="ផ្ទះលេខ, ផ្លូវ, សង្កាត់/ឃុំ" /></label><label>ខេត្ត/រាជធានី<input required name="city" placeholder="ភ្នំពេញ" /></label><label>កំណត់ចំណាំ (ស្រេចចិត្ត)<input name="note" placeholder="ព័ត៌មានបន្ថែមសម្រាប់អ្នកដឹកជញ្ជូន" /></label></div>
       </section>
       <section className="form-section"><div className="form-section-heading"><span>02</span><div><h2>វិធីទូទាត់</h2><p>ជ្រើសរើសវិធីទូទាត់ដែលងាយស្រួលសម្រាប់អ្នក</p></div></div>
-        <div className="payment-options">{[['KHQR', '▦', 'ABA KHQR', 'ស្កេនកូដ KHQR ពេលបញ្ជាក់ការកុម្ម៉ង់'], ['COD', '៛', 'បង់ប្រាក់ពេលទទួល', 'ទូទាត់ជាសាច់ប្រាក់ជាមួយអ្នកដឹកជញ្ជូន']].map(([value, icon, title, desc]) => <label className={`payment-option ${payment === value ? 'selected' : ''}`} key={value}><input type="radio" name="payment" value={value} checked={payment === value} onChange={() => setPayment(value)} /><span className="payment-icon">{icon}</span><span><b>{title}</b><small>{desc}</small></span><i>{payment === value ? '●' : '○'}</i></label>)}</div>
+        <div className="payment-options">{[['ABA', '▦', 'ABA KHQR', 'ស្កេន KHQR តាមកម្មវិធី ABA'], ['ACLEDA', '▦', 'ACLEDA KHQR', 'ស្កេន KHQR តាមកម្មវិធី ACLEDA'], ['COD', '៛', 'បង់ប្រាក់ពេលទទួល', 'ទូទាត់ជាសាច់ប្រាក់ជាមួយអ្នកដឹកជញ្ជូន']].map(([value, icon, title, desc]) => <label className={`payment-option ${payment === value ? 'selected' : ''}`} key={value}><input type="radio" name="payment" value={value} checked={payment === value} onChange={() => { setPayment(value); setPaymentReceipt(''); setReceiptFileName(''); setError(''); }} /><span className="payment-icon">{icon}</span><span><b>{title}</b><small>{desc}</small></span><i>{payment === value ? '●' : '○'}</i></label>)}</div>
+        {payment !== 'COD' && <div className="khqr-payment-details"><div className="khqr-code-card"><img src={payment === 'ABA' ? '/payment-aba.png' : '/payment-acleda.png'} alt={`${payment} KHQR របស់ KONG BARANG`} /><div><span className="eyebrow">{payment === 'ABA' ? 'ABA PAY' : 'ACLEDA BANK'}</span><h3>KONG BARANG</h3><p>សូមបញ្ចូលចំនួនប្រាក់ខាងក្រោមក្នុងកម្មវិធីធនាគារ មុនស្កេន QR។</p><strong>{money(cartTotal - discount + shipping)}</strong><small>QR នេះជា static KHQR ហើយមិនបាន encode ចំនួនប្រាក់ជាមុនទេ។ សូមផ្ទៀងផ្ទាត់ឈ្មោះទទួលប្រាក់ មុនបង់។</small></div></div><label className="receipt-upload">បង្កាន់ដៃបង់ប្រាក់<input type="file" accept="image/png,image/jpeg,image/webp" required={!paymentReceipt} onChange={(event) => { const file = event.target.files?.[0]; setPaymentReceipt(''); setReceiptFileName(''); if (!file) return; if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { setError('សូមជ្រើសរើសរូបភាព PNG, JPG ឬ WEBP។'); event.target.value = ''; return; } if (file.size > 4 * 1024 * 1024) { setError('ទំហំរូបភាពបង្កាន់ដៃមិនអាចលើស 4 MB បានទេ។'); event.target.value = ''; return; } const reader = new FileReader(); reader.onload = () => { if (typeof reader.result === 'string') { setPaymentReceipt(reader.result); setReceiptFileName(file.name); setError(''); } }; reader.onerror = () => setError('មិនអាចអានរូបភាពបង្កាន់ដៃបានទេ។ សូមព្យាយាមម្ដងទៀត។'); reader.readAsDataURL(file); }} /><small>ផ្ទុករូបភាពភស្តុតាងការទូទាត់ (PNG/JPG/WEBP, អតិបរមា 4 MB)។</small></label>{paymentReceipt && <div className="receipt-upload-preview"><img src={paymentReceipt} alt="មើលរូបបង្កាន់ដៃដែលបានជ្រើសរើស" /><span>បានជ្រើសរើស៖ {receiptFileName}</span></div>}</div>}
       </section>
-      <button className="button-primary full-button place-order" type="submit" disabled={submitting}>{submitting ? 'កំពុងរក្សាទុក...' : 'បញ្ជាក់ការកុម្ម៉ង់ →'}</button><p className="secure-note">🔒 ព័ត៌មានរបស់អ្នកត្រូវបានការពារដោយសុវត្ថិភាព</p>
-    </div><aside className="order-summary checkout-summary"><h2>ការកុម្ម៉ង់របស់អ្នក</h2>{cart.map((item) => <div className="checkout-item" key={`${item._id}-${item.selectedColor}`}><img src={item.image} alt={item.name} /><div><b>{item.name}</b><small>{item.selectedColor ? `ពណ៌ ${item.selectedColor} · ` : ''}ចំនួន ${item.quantity}</small></div><b>{money(item.price * item.quantity)}</b></div>)}<div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{coupon && <div className="summary-line discount-line"><span>កូដ {coupon.code} ({coupon.discountPercent}%)</span><b>−{money(discount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុបត្រូវបង់</span><b>{money(cartTotal - discount + shipping)}</b></div><p className="secure-note">បង់ប្រាក់មានសុវត្ថិភាព · ទំនិញមានការធានា</p></aside></form>
+      {(payment === 'COD' || paymentReceipt) ? <button className="button-primary full-button place-order" type="submit" disabled={submitting}>{submitting ? 'កំពុងរក្សាទុក...' : 'បញ្ជាក់ការកុម្ម៉ង់ →'}</button> : <p className="receipt-required-note">សូមបង់ប្រាក់ និងផ្ទុករូបបង្កាន់ដៃ ដើម្បីបង្ហាញប៊ូតុងបញ្ជាក់ការកុម្ម៉ង់។</p>}<p className="secure-note">🔒 បង្កាន់ដៃ KHQR នឹងរង់ចាំ Admin ផ្ទៀងផ្ទាត់ មិនមែនការបញ្ជាក់ទូទាត់ស្វ័យប្រវត្តិទេ។</p>
+    </div><aside className="order-summary checkout-summary"><h2>ការកុម្ម៉ង់របស់អ្នក</h2>{cart.map((item) => <div className="checkout-item" key={`${item._id}-${item.selectedColor}`}><img src={item.image} alt={item.name} /><div><b>{item.name}</b><small>{item.selectedColor ? `ពណ៌ ${item.selectedColor} · ` : ''}ចំនួន ${item.quantity}</small></div><b>{money(item.price * item.quantity)}</b></div>)}<div className="summary-line"><span>សរុបរង</span><b>{money(cartTotal)}</b></div>{coupon && <div className="summary-line discount-line"><span>កូដ {coupon.code} ({coupon.discountAmount ? money(coupon.discountAmount) : `${coupon.discountPercent}%`})</span><b>−{money(discount)}</b></div>}<div className="summary-line"><span>ដឹកជញ្ជូន</span><b>{shipping ? money(shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="summary-total"><span>សរុបត្រូវបង់</span><b>{money(cartTotal - discount + shipping)}</b></div><p className="secure-note">បង់ប្រាក់មានសុវត្ថិភាព · ទំនិញមានការធានា</p></aside></form>
   </main>;
 }
 
@@ -258,11 +311,62 @@ export function OrderCompletePage() {
   const location = useLocation();
   const [order, setOrder] = useState(location.state?.order || null);
   const [error, setError] = useState('');
+  const [creatingPdf, setCreatingPdf] = useState(false);
   useEffect(() => {
     if (order) return;
     fetchOrder(id).then(setOrder).catch((requestError) => setError(requestError.message));
   }, [id, order]);
-  return <main className="empty-state order-complete"><span className="complete-check">✓</span><span className="eyebrow">ការកុម្ម៉ង់ជោគជ័យ</span><h1>សូមអរគុណសម្រាប់ការកុម្ម៉ង់!</h1><p>យើងបានទទួលការកុម្ម៉ង់របស់អ្នក ហើយកំពុងរៀបចំទំនិញ។</p><div className="order-number">លេខកុម្ម៉ង់ <b>{id}</b>{order && <><span>សរុប</span><b>{money(order.total)}</b><span>ស្ថានភាព</span><b>{order.status}</b></>}</div>{order?.items?.length > 0 && <div className="order-complete-items">{order.items.map((item, index) => <div key={`${item.product || item.name}-${index}`}><span>{item.name}{item.color ? ` · ពណ៌ ${item.color}` : ''} × {item.quantity}</span><b>{money(item.price * item.quantity)}</b></div>)}</div>}{error && <p className="error-text">{error}</p>}<Link className="button-primary" to={order?.user ? '/account' : '/products'}>{order?.user ? 'មើលស្ថានភាពការកុម្ម៉ង់' : 'បន្តទិញទំនិញ'}</Link></main>;
+  const downloadReceiptPdf = async () => {
+    const receipt = document.querySelector('.customer-print-receipt');
+    if (!(receipt instanceof HTMLElement)) {
+      setError('មិនអាចរកវិក្កយបត្រដើម្បីបង្កើត PDF បានទេ។');
+      return;
+    }
+    setCreatingPdf(true);
+    setError('');
+    receipt.classList.add('pdf-exporting');
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      if (document.fonts?.ready) await document.fonts.ready;
+      const canvas = await html2canvas(receipt, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      if (!canvas.width || !canvas.height) throw new Error('វិក្កយបត្រទទេ មិនអាចបង្កើត PDF បានទេ។');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      const margin = 12;
+      const contentWidth = pdf.internal.pageSize.getWidth() - margin * 2;
+      const contentHeight = pdf.internal.pageSize.getHeight() - margin * 2;
+      const pageHeightPixels = Math.floor(canvas.width * contentHeight / contentWidth);
+      let offset = 0;
+      while (offset < canvas.height) {
+        const sliceHeight = Math.min(pageHeightPixels, canvas.height - offset);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeight;
+        const context = pageCanvas.getContext('2d');
+        if (!context) throw new Error('កម្មវិធីមិនអាចបង្កើតរូបភាព PDF បានទេ។');
+        context.drawImage(canvas, 0, offset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+        if (offset > 0) pdf.addPage();
+        const sliceHeightMm = sliceHeight * contentWidth / canvas.width;
+        pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, contentWidth, sliceHeightMm, undefined, 'FAST');
+        offset += sliceHeight;
+      }
+      pdf.save(`${order.orderNumber}-receipt.pdf`);
+    } catch (requestError) {
+      console.error('Unable to generate customer receipt PDF:', requestError);
+      setError('មិនអាចទាញយក PDF បានទេ។ សូមសាកល្បងម្ដងទៀត។');
+    } finally {
+      receipt.classList.remove('pdf-exporting');
+      setCreatingPdf(false);
+    }
+  };
+  return <main className="empty-state order-complete"><span className="complete-check">✓</span><span className="eyebrow">ការកុម្ម៉ង់ជោគជ័យ</span><h1>សូមអរគុណសម្រាប់ការកុម្ម៉ង់!</h1><p>យើងបានទទួលការកុម្ម៉ង់របស់អ្នក ហើយកំពុងរៀបចំទំនិញ។</p>{order && <article className="customer-print-receipt"><header className="customer-receipt-header"><div><strong>PHONE KH</strong><span>បង្កាន់ដៃការកុម្ម៉ង់</span></div><div><h2>វិក្កយបត្រ</h2><b>{order.orderNumber}</b></div></header><div className="customer-receipt-meta"><div><span>អតិថិជន</span><b>{order.customer}</b></div><div><span>ទូរស័ព្ទ</span><b>{order.phone}</b></div><div><span>កាលបរិច្ឆេទ</span><b>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</b></div><div><span>វិធីទូទាត់</span><b>{order.payment === 'COD' ? 'បង់ប្រាក់ពេលទទួល' : `${order.paymentProvider || 'KHQR'} · KHQR`} · {order.paymentStatus === 'Paid' ? 'បានបង់ប្រាក់' : 'មិនទាន់បង់'}</b></div><div className="customer-receipt-address"><span>អាសយដ្ឋានដឹកជញ្ជូន</span><b>{order.address}</b></div></div><div className="customer-receipt-items"><div className="customer-receipt-item-head"><span>ផលិតផល</span><span>សរុប</span></div>{order.items?.map((item, index) => <div className="customer-receipt-item" key={`${item.product || item.name}-${index}`}><span>{item.name}{[item.storage, item.color].filter(Boolean).length ? ` · ${[item.storage, item.color].filter(Boolean).join(' · ')}` : ''} × ${item.quantity}</span><b>{money(item.price * item.quantity)}</b></div>)}</div><div className="customer-receipt-totals"><div><span>សរុបរង</span><b>{money(order.subtotal)}</b></div>{order.discount > 0 && <div><span>បញ្ចុះតម្លៃ{order.discountCode ? ` (${order.discountCode})` : ''}</span><b>−{money(order.discount)}</b></div>}<div><span>ដឹកជញ្ជូន</span><b>{order.shipping ? money(order.shipping) : 'ឥតគិតថ្លៃ'}</b></div><div className="customer-receipt-grand-total"><span>សរុបត្រូវបង់</span><b>{money(order.total)}</b></div></div><footer>សូមអរគុណដែលបានគាំទ្រ PHONE KH</footer></article>}{error && <p className="error-text">{error}</p>}{order && <><button className="button-primary customer-print-button" type="button" onClick={downloadReceiptPdf} disabled={creatingPdf}>{creatingPdf ? 'កំពុងបង្កើត PDF...' : '⬇ ទាញយកវិក្កយបត្រ PDF'}</button><small className="customer-pdf-help">PDF នឹងទាញយកទៅក្នុងឧបករណ៍របស់អ្នកដោយផ្ទាល់។</small></>}<Link className="button-primary" to={order?.user ? '/account' : '/products'}>{order?.user ? 'មើលស្ថានភាពការកុម្ម៉ង់' : 'បន្តទិញទំនិញ'}</Link></main>;
 }
 
 export function LoginPage({ register = false }) {
@@ -302,11 +406,79 @@ export function LoginPage({ register = false }) {
 }
 
 export function AccountPage() {
-  const { user, signOut, orders, loading } = useShop();
+  const { user, signOut, orders, loading, saveUserProfile } = useShop();
   const navigate = useNavigate();
+  const [profileImageDraft, setProfileImageDraft] = useState(null);
+  const profileImage = profileImageDraft && profileImageDraft.userId === user?.id
+    ? profileImageDraft.value
+    : user?.profileImage || '';
+  const [profileError, setProfileError] = useState('');
+  const [profileNotice, setProfileNotice] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const profileImageInput = useRef(null);
   if (loading) return <main className="empty-state"><p className="loading-note">កំពុងទាញព័ត៌មានគណនីពី Database...</p></main>;
-  if (!user) return <main className="empty-state"><span>♙</span><h2>សូមចូលគណនីរបស់អ្នក</h2><p>ចូលគណនីដើម្បីមើលព័ត៌មាន និងប្រវត្តិការកុម្ម៉ង់។</p><Link className="button-primary" to="/login">ចូលគណនី →</Link></main>;
-  return <main className="content-wrap account-page"><PageIntro eyebrow="គណនីរបស់អ្នក" title={`សួស្តី ${user.name}`} description="គ្រប់គ្រងព័ត៌មានគណនី និងតាមដានការកុម្ម៉ង់របស់អ្នក។" /><div className="account-layout"><aside className="account-card"><div className="account-avatar">{String(user.name).charAt(0).toUpperCase()}</div><h2>{user.name}</h2><p>{user.email}</p><div className="account-menu"><span className="active">♙ ទិដ្ឋភាពគណនី</span><a href="#orders">▤ ប្រវត្តិការកុម្ម៉ង់</a><button onClick={async () => { await signOut(); navigate('/'); }}>↪ ចាកចេញ</button></div></aside><section className="account-orders" id="orders"><div className="section-heading"><div><h2>ការកុម្ម៉ង់របស់ខ្ញុំ</h2><p>តាមដាន និងមើលប្រវត្តិការទិញរបស់អ្នក</p></div><Link className="text-link" to="/products">ទិញទំនិញ →</Link></div>{orders.length ? orders.map((order) => <div className="account-order" key={order._id}><div><small>លេខកុម្ម៉ង់</small><b>{order.orderNumber}</b></div><div><small>កាលបរិច្ឆេទ</small><b>{new Date(order.createdAt).toLocaleDateString()}</b></div><div><small>សរុប</small><b>{money(order.total)}</b></div><span className="status-pill">{order.status}</span></div>) : <div className="empty-orders"><p>អ្នកមិនទាន់មានការកុម្ម៉ង់នៅឡើយទេ។</p><Link to="/products">ចាប់ផ្ដើមទិញទំនិញ →</Link></div>}</section></div></main>;
+  if (!user) return <main className="empty-state"><span className="account-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg></span><h2>សូមចូលគណនីរបស់អ្នក</h2><p>ចូលគណនីដើម្បីមើលព័ត៌មាន និងប្រវត្តិការកុម្ម៉ង់។</p><Link className="button-primary" to="/login">ចូលគណនី →</Link></main>;
+  const handleProfileImageChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setProfileError('');
+    setProfileNotice('');
+    try {
+      setProfileImageDraft({ userId: user.id, value: await prepareProfileImage(file) });
+    } catch (requestError) {
+      setProfileError(requestError.message || 'មិនអាចដំណើរការរូបភាពបានទេ។');
+      event.target.value = '';
+    }
+  };
+  const saveProfileImage = async (event) => {
+    event.preventDefault();
+    setProfileSaving(true);
+    setProfileError('');
+    setProfileNotice('');
+    try {
+      await saveUserProfile({ profileImage });
+      setProfileImageDraft(null);
+      setProfileNotice('រូបភាពប្រវត្តិរូបត្រូវបានរក្សាទុក។');
+    } catch (requestError) {
+      setProfileError(requestError.message);
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+  return (
+    <main className="content-wrap account-page">
+      <PageIntro eyebrow="គណនីរបស់អ្នក" title={`សួស្តី ${user.name}`} description="គ្រប់គ្រងព័ត៌មានគណនី និងតាមដានការកុម្ម៉ង់របស់អ្នក។" />
+      <div className="account-layout">
+        <aside className="account-card">
+          <form className="profile-image-form" onSubmit={saveProfileImage}>
+            <button className="profile-avatar-picker" type="button" onClick={() => profileImageInput.current?.click()} aria-label={profileImage ? 'ប្តូររូបភាពប្រវត្តិរូប' : 'ជ្រើសរើសរូបភាពប្រវត្តិរូប'} title="ចុចដើម្បីជ្រើសរើសរូបភាព">
+              {profileImage ? <img src={profileImage} alt="" /> : <span>{String(user.name).charAt(0).toUpperCase()}</span>}
+              <span className="profile-avatar-overlay"><span aria-hidden="true">📷</span><small>{profileImage ? 'ប្តូររូប' : 'ដាក់រូប'}</small></span>
+            </button>
+            <input ref={profileImageInput} className="profile-image-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleProfileImageChange} tabIndex="-1" aria-label="ជ្រើសរើសរូបភាពប្រវត្តិរូប" />
+            <small className="profile-image-hint">ចុចលើរូបក្នុងរង្វង់ដើម្បីជ្រើសរើសរូបថ្មី</small>
+            <h2>{user.name}</h2>
+            <p>{user.email}</p>
+            {user.welcomeCouponCode && <div className="welcome-coupon-card"><small>លេខកូដស្វាគមន៍</small><strong>{user.welcomeCouponCode}</strong><p>បញ្ចុះ $50 លើសរុបផលិតផលចាប់ពី $500 និងប្រើបាន ២ ដង។</p></div>}
+            {profileError && <p className="form-error" role="alert">{profileError}</p>}
+            {profileNotice && <p className="success-box" role="status">{profileNotice}</p>}
+            <button className="button-primary full-button" type="submit" disabled={profileSaving}>{profileSaving ? 'កំពុងរក្សាទុក...' : 'រក្សាទុករូបភាព'}</button>
+            {profileImage && <button className="profile-image-remove" type="button" disabled={profileSaving} onClick={() => { setProfileImageDraft({ userId: user.id, value: '' }); setProfileNotice(''); }}>ដករូបភាពចេញ</button>}
+          </form>
+          <div className="account-menu">
+            <span className="active"><svg className="account-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>ទិដ្ឋភាពគណនី</span>
+            <a href="#orders">▤ ប្រវត្តិការកុម្ម៉ង់</a>
+            {user.role === 'admin' && <Link className="account-admin-link" to="/admin"><svg className="account-menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="5" rx="1" /><rect x="13" y="10" width="8" height="11" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /></svg>ផ្ទាំងគ្រប់គ្រង Admin<span aria-hidden="true">→</span></Link>}
+            <button onClick={async () => { await signOut(); navigate('/'); }}>↪ ចាកចេញ</button>
+          </div>
+        </aside>
+        <section className="account-orders" id="orders">
+          <div className="section-heading"><div><h2>ការកុម្ម៉ង់របស់ខ្ញុំ</h2><p>តាមដាន និងមើលប្រវត្តិការទិញរបស់អ្នក</p></div><Link className="text-link" to="/products">ទិញទំនិញ →</Link></div>
+          {orders.length ? orders.map((order) => <div className="account-order" key={order._id}><div><small>លេខកុម្ម៉ង់</small><b>{order.orderNumber}</b></div><div><small>កាលបរិច្ឆេទ</small><b>{new Date(order.createdAt).toLocaleDateString()}</b></div><div><small>សរុប</small><b>{money(order.total)}</b></div><span className="status-pill">{order.status}</span></div>) : null}
+        </section>
+      </div>
+    </main>
+  );
 }
 
 export function ContactPage() {
