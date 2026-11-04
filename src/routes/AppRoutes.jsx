@@ -17,7 +17,9 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/products" element={<ProductsPage />} />
+      <Route path="/products" element={<ProductsPage categoryDefault="Smartphone" />} />
+      <Route path="/phones" element={<ProductsPage categoryDefault="Smartphone" />} />
+      <Route path="/chargers" element={<ProductsPage categoryDefault="Chargers" />} />
       <Route path="/search" element={<ProductsPage search />} />
       <Route path="/products/:id" element={<ProductDetailsPage />} />
       <Route path="/cart" element={<CartPage />} />

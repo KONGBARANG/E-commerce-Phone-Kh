@@ -6,7 +6,6 @@ function Navbar({ theme, themeMode, setThemeMode }) {
   const { cartCount, user, products } = useShop();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
-  const categories = [...new Set(products.map((product) => product.category).filter(Boolean))];
   const brands = [...new Set(products.map((product) => product.brand).filter(Boolean))]
     .sort((first, second) => first.localeCompare(second));
   const countBy = (field, value) => products.filter((product) => product[field] === value).length;
@@ -93,19 +92,16 @@ function Navbar({ theme, themeMode, setThemeMode }) {
       <nav className="category-nav" aria-label="រុករកផលិតផលតាមប្រភេទ និងម៉ាក">
         <span className="category-nav-label">រុករកតាម</span>
         <div className="category-nav-links">
-          <Link className="category-chip" to="/products"><span>ផលិតផលទាំងអស់</span><small>{products.length}</small></Link>
-          {categories.map((category) => (
-            <Link className="category-chip" to={`/products?category=${encodeURIComponent(category)}`} key={category}>
-              <span>{category === 'Smartphone' ? 'ទូរស័ព្ទ' : category === 'Accessories' ? 'គ្រឿងបន្លាស់' : category}</span>
-              <small>{countBy('category', category)}</small>
-            </Link>
-          ))}
+          <Link className="category-chip" to="/products?category=all"><span>ផលិតផលទាំងអស់</span><small>{products.length}</small></Link>
+          <Link className="category-chip" to="/phones"><span>ទូរស័ព្ទ</span><small>{countBy('category', 'Smartphone')}</small></Link>
+          <Link className="category-chip" to="/chargers"><span>ឆ្នាំងសាក</span><small>{countBy('category', 'Chargers')}</small></Link>
+          <Link className="category-chip" to="/products?category=Accessories"><span>គ្រឿងបន្លាស់</span><small>{countBy('category', 'Accessories')}</small></Link>
           {brands.map((brand) => (
-            <Link className="category-chip category-brand-chip" to={`/products?brand=${encodeURIComponent(brand)}`} key={brand}>
+            <Link className="category-chip category-brand-chip" to={`/products?category=all&brand=${encodeURIComponent(brand)}`} key={brand}>
               <span>{brand}</span><small>{countBy('brand', brand)}</small>
             </Link>
           ))}
-          <Link className="category-chip category-deal-chip" to="/products?sort=price-asc">តម្លៃទាប</Link>
+          <Link className="category-chip category-deal-chip" to="/products?category=all&sort=price-asc">តម្លៃទាប</Link>
         </div>
       </nav>
     </>

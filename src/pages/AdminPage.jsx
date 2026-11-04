@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 import { createProduct as saveProduct, deleteProduct as removeProduct, setProduct, setUserRole } from '../services/api';
 
 const defaultProductImage = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85';
 const parseList = (value) => String(value || '').split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+const colorOptions = ['ខ្មៅ', 'ស', 'ប្រាក់', 'ប្រផេះ', 'ខៀវ', 'មាស', 'បៃតង', 'ស្វាយ', 'ក្រហម', 'ផ្កាឈូក'];
+const storageOptions = ['18W', '20W', '25W', '30W', '45W', '65W', '100W', '64GB', '128GB', '256GB', '512GB', '1TB', '2TB', 'USB-C', 'USB-A', 'Lightning', 'Bluetooth', '46mm', '20000mAh'];
+const ramOptions = ['4GB', '6GB', '8GB', '12GB', '16GB', '24GB'];
 
 const sections = [
   { path: '/admin', label: 'ទិដ្ឋភាពទូទៅ', icon: '▦' },
@@ -20,8 +23,13 @@ function AdminPage() {
     refreshAdmin, setOrderStatus, setPaymentStatus, loading,
   } = useShop();
   const { pathname } = useLocation();
+  const [productParams, setProductParams] = useSearchParams();
+  const productCategory = ['Smartphone', 'Chargers', 'Accessories'].includes(productParams.get('category'))
+    ? productParams.get('category')
+    : 'Smartphone';
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [selectedColors, setSelectedColors] = useState([]);
   const [imagePreview, setImagePreview] = useState(defaultProductImage);
   const [galleryPreview, setGalleryPreview] = useState([]);
   const [imageFitPreview, setImageFitPreview] = useState('contain');
@@ -72,13 +80,13 @@ function AdminPage() {
     const form = new FormData(event.currentTarget);
     const image = String(form.get('image')).trim() || defaultProductImage;
     const images = [...new Set(parseList(form.get('images')).filter((url) => url !== image))];
-    const colors = [...new Set(parseList(form.get('colors')))];
+    const colors = [...new Set(form.getAll('colors').map(String))];
     if (images.length > 3) {
       setError('អាចបន្ថែមរូបភាពបន្ថែមបានអតិបរមា 3 រូប (សរុប 4 រូប)។');
       return;
     }
-    if (colors.length > 8) {
-      setError('អាចបន្ថែមពណ៌បានអតិបរមា 8 ពណ៌។');
+    if (colors.length > 3) {
+      setError('អាចជ្រើសរើសពណ៌បានអតិបរមា 3 ពណ៌។');
       return;
     }
     if (images.some((url) => {
@@ -96,6 +104,7 @@ function AdminPage() {
       name: String(form.get('name')).trim(),
       brand: String(form.get('brand')).trim(),
       category: String(form.get('category')),
+      ...(String(form.get('sku') || '').trim() ? { sku: String(form.get('sku')).trim() } : {}),
       price: Number(form.get('price')),
       ...(form.get('oldPrice') ? { oldPrice: Number(form.get('oldPrice')) } : {}),
       image,
@@ -115,6 +124,7 @@ function AdminPage() {
       await Promise.all([refreshProducts(), refreshAdmin()]);
       setShowForm(false);
       setEditingProduct(null);
+      setSelectedColors([]);
       setNotice(editingProduct ? 'ផលិតផលត្រូវបានធ្វើបច្ចុប្បន្នភាពក្នុង Database។' : 'ផលិតផលថ្មីត្រូវបានរក្សាទុកក្នុង Database។');
     } catch (requestError) {
       setError(requestError.message);
@@ -162,9 +172,11 @@ function AdminPage() {
     if (showForm) {
       setShowForm(false);
       setEditingProduct(null);
+      setSelectedColors([]);
       return;
     }
     setEditingProduct(null);
+    setSelectedColors([]);
     setImagePreview(defaultProductImage);
     setGalleryPreview([]);
     setImageFitPreview('contain');
@@ -174,6 +186,7 @@ function AdminPage() {
 
   const editProduct = (product) => {
     setEditingProduct(product);
+    setSelectedColors(product.colors || []);
     setImagePreview(product.image || defaultProductImage);
     setGalleryPreview(product.images || []);
     setImageFitPreview(product.imageFit || 'contain');
@@ -182,16 +195,52 @@ function AdminPage() {
   };
 
   const renderProducts = () => <section className="admin-panel">
-    <div className="panel-heading"><div><h2>បញ្ជីផលិតផល</h2><p>បន្ថែម និងគ្រប់គ្រងស្តុកផលិតផលនៅក្នុង Database</p></div><button className="button-primary" onClick={toggleProductForm}>{showForm ? 'បោះបង់' : '＋ បន្ថែមផលិតផល'}</button></div>
+    <div className="panel-heading"><div><h2>គ្រប់គ្រងផលិតផល</h2><p>បែងចែកទូរស័ព្ទ ឆ្នាំងសាក និងគ្រឿងបន្លាស់ ដើម្បីគ្រប់គ្រងបានងាយ។</p></div><button className="button-primary" onClick={toggleProductForm}>{showForm ? 'បោះបង់' : `＋ បន្ថែម${productCategory === 'Smartphone' ? 'ទូរស័ព្ទ' : productCategory === 'Chargers' ? 'ឆ្នាំងសាក' : 'គ្រឿងបន្លាស់'}`}</button></div>
+    <nav className="admin-product-tabs" aria-label="ប្រភេទផលិតផលក្នុង Admin">
+      {[['Smartphone', 'ទូរស័ព្ទ'], ['Chargers', 'ឆ្នាំងសាក'], ['Accessories', 'គ្រឿងបន្លាស់']].map(([value, label]) => (
+        <button className={productCategory === value ? 'active' : ''} type="button" aria-pressed={productCategory === value} onClick={() => {
+          setShowForm(false);
+          setEditingProduct(null);
+          setSelectedColors([]);
+          setProductParams({ category: value });
+        }} key={value}>{label}<span>{products.filter((product) => product.category === value).length}</span></button>
+      ))}
+    </nav>
     {notice && <div className="success-box">{notice}</div>}
     {showForm && <form key={editingProduct?._id || 'new-product'} className="admin-product-form" onSubmit={createProduct}>
       <label>ឈ្មោះផលិតផល<input name="name" required defaultValue={editingProduct?.name || ''} /></label>
       <label>ម៉ាក<input name="brand" required defaultValue={editingProduct?.brand || ''} /></label>
-      <label>ប្រភេទ<select name="category" defaultValue={editingProduct?.category || 'Smartphone'}><option>Smartphone</option><option>Accessories</option></select></label>
+      <label>លេខសម្គាល់ SKU<input name="sku" defaultValue={editingProduct?.sku || ''} placeholder="ឧ. APP-IP16-256-BLK" /><small>ប្រើលេខខុសគ្នាសម្រាប់កំណែផលិតផលនីមួយៗ។</small></label>
+      <label>ប្រភេទ<select name="category" defaultValue={editingProduct?.category || productCategory}><option value="Smartphone">ស្មាតហ្វូន</option><option value="Accessories">គ្រឿងបន្លាស់</option><option value="Chargers">ឆ្នាំងសាក</option></select></label>
       <label>តម្លៃ ($)<input name="price" type="number" min="0" required defaultValue={editingProduct?.price || ''} /></label>
       <label>តម្លៃដើម ($)<input name="oldPrice" type="number" min="0" defaultValue={editingProduct?.oldPrice || ''} /></label>
       <label>ស្តុក<input name="stock" type="number" min="0" defaultValue={editingProduct?.stock ?? 1} required /></label>
-      <label className="span-two">ពណ៌ដែលមាន (បំបែកដោយក្បៀស)<input name="colors" defaultValue={editingProduct?.colors?.join(', ') || ''} placeholder="ឧ. ខ្មៅ, ប្រាក់, ខៀវ" /></label>
+      <fieldset className="admin-color-picker span-two">
+        <legend>ពណ៌ដែលមាន <span>{selectedColors.length}/3</span></legend>
+        <div>{[...new Set([...colorOptions, ...(editingProduct?.colors || [])])].map((color) => (
+          <label className="admin-color-option" key={color}>
+            <input
+              type="checkbox"
+              name="colors"
+              value={color}
+              checked={selectedColors.includes(color)}
+              onChange={(event) => {
+                const { checked } = event.target;
+                if (checked && selectedColors.length >= 3) {
+                  setError('អាចជ្រើសរើសពណ៌បានអតិបរមា 3 ពណ៌។');
+                  return;
+                }
+                setError('');
+                setSelectedColors((current) => checked
+                  ? [...current, color]
+                  : current.filter((selected) => selected !== color));
+              }}
+            />
+            <span>{color}</span>
+          </label>
+        ))}</div>
+        <small>ចុចជ្រើសរើសបានរហូតដល់ 3 ពណ៌។</small>
+      </fieldset>
       <label className="span-two">រូបភាពចម្បង (URL)<input name="image" type="url" defaultValue={editingProduct?.image || defaultProductImage} onChange={(event) => setImagePreview(event.target.value || defaultProductImage)} /></label>
       <label className="span-two">រូបភាពបន្ថែម (URL មួយក្នុងមួយបន្ទាត់)
         <textarea name="images" rows="3" maxLength="3000" defaultValue={editingProduct?.images?.join('\n') || ''} placeholder={'https://example.com/phone-front.jpg\nhttps://example.com/phone-back.jpg'} onChange={(event) => setGalleryPreview(parseList(event.target.value).slice(0, 3))} />
@@ -205,12 +254,22 @@ function AdminPage() {
         </div>
         <div><b>មើលរូបភាពជាមុន</b><small>អតិថិជនអាចចុចលើរូបតូចៗ ដើម្បីមើលរូបនីមួយៗ។</small></div>
       </div>
-      <label>អង្គផ្ទុកទិន្នន័យ<input name="storage" defaultValue={editingProduct?.storage || ''} /></label>
-      <label>RAM<input name="ram" defaultValue={editingProduct?.ram || ''} /></label>
+      <label>ទំហំ / លក្ខណៈ / កម្លាំងសាក
+        <select name="storage" defaultValue={editingProduct?.storage || ''}>
+          <option value="">ជ្រើសរើសលក្ខណៈ</option>
+          {[...new Set([...storageOptions, ...(editingProduct?.storage ? [editingProduct.storage] : [])])].map((option) => <option key={option}>{option}</option>)}
+        </select>
+      </label>
+      <label>RAM
+        <select name="ram" defaultValue={editingProduct?.ram || ''}>
+          <option value="">ជ្រើសរើស RAM</option>
+          {[...new Set([...ramOptions, ...(editingProduct?.ram ? [editingProduct.ram] : [])])].map((option) => <option key={option}>{option}</option>)}
+        </select>
+      </label>
       <label className="span-two">ការពិពណ៌នា<input name="description" defaultValue={editingProduct?.description || ''} /></label>
       <button className="button-primary" type="submit">{editingProduct ? 'រក្សាទុកការកែប្រែ' : 'រក្សាទុកផលិតផល'}</button>
     </form>}
-    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>ផលិតផល</th><th>ប្រភេទ</th><th>តម្លៃ</th><th>ស្តុក</th><th>សកម្មភាព</th></tr></thead><tbody>{products.map((product) => <tr key={product._id}><td><div className="admin-product-name"><img src={product.image} alt="" /><span><b>{product.name}</b><small>{product.brand}</small></span></div></td><td>{product.category}</td><td>${product.price}</td><td><span className={product.stock < 5 ? 'stock-low' : 'stock-ok'}>{product.stock} គ្រឿង</span></td><td><button className="table-action" onClick={() => editProduct(product)}>កែ</button> <button className="table-action" aria-label={`លុប ${product.name}`} onClick={() => removeProductFromStore(product._id)}>លុប</button></td></tr>)}</tbody></table></div>
+    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>ផលិតផល</th><th>លេខ SKU / លក្ខណៈ</th><th>ប្រភេទ</th><th>តម្លៃ</th><th>ស្តុក</th><th>សកម្មភាព</th></tr></thead><tbody>{products.filter((product) => product.category === productCategory).map((product) => <tr key={product._id}><td><div className="admin-product-name"><img src={product.image} alt="" /><span><b>{product.name}</b><small>{product.brand}</small></span></div></td><td>{product.sku && <small>SKU: {product.sku}</small>}<small>{[product.storage, product.ram && `RAM ${product.ram}`].filter(Boolean).join(' · ') || '—'}</small></td><td>{product.category === 'Smartphone' ? 'ស្មាតហ្វូន' : product.category === 'Chargers' ? 'ឆ្នាំងសាក' : 'គ្រឿងបន្លាស់'}</td><td>${product.price}</td><td><span className={product.stock < 5 ? 'stock-low' : 'stock-ok'}>{product.stock} គ្រឿង</span></td><td><button className="table-action" onClick={() => editProduct(product)}>កែ</button> <button className="table-action" aria-label={`លុប ${product.name}`} onClick={() => removeProductFromStore(product._id)}>លុប</button></td></tr>)}</tbody></table>{products.filter((product) => product.category === productCategory).length === 0 && <div className="admin-empty">មិនទាន់មានផលិតផលក្នុងប្រភេទនេះទេ។ ចុច “បន្ថែម” ដើម្បីបញ្ចូលផលិតផលថ្មី។</div>}</div>
   </section>;
 
   const renderOrders = () => <section className="admin-panel"><div className="panel-heading"><div><h2>ការកុម្ម៉ង់ទាំងអស់</h2><p>បញ្ជីនេះធ្វើបច្ចុប្បន្នភាពរៀងរាល់ 15 វិនាទី។ សូមផ្ទៀងផ្ទាត់ការបង់ប្រាក់ក្រៅប្រព័ន្ធ មុនសម្គាល់ថាបានបង់។</p></div></div>{orders.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/ស្ថានភាពបង់</th><th>ស្ថានភាពកុម្ម៉ង់</th></tr></thead><tbody>{orders.map((order) => <tr key={order._id}><td><b>{order.orderNumber}</b></td><td><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small><small>{(order.items || []).map((item) => `${item.name}${item.color ? ` · ពណ៌ ${item.color}` : ''} × ${item.quantity}`).join(', ')}</small></td><td>{order.phone}</td><td>${order.total}</td><td>{order.payment}<br /><select className="status-select" aria-label={`ស្ថានភាពទូទាត់ ${order.orderNumber}`} value={order.paymentStatus || 'Unpaid'} onChange={(event) => changePaymentStatus(order.orderNumber, event.target.value)}><option value="Unpaid">មិនទាន់បង់</option><option value="Paid">បានបង់ប្រាក់</option></select></td><td><select className="status-select" aria-label={`ស្ថានភាពការកុម្ម៉ង់ ${order.orderNumber}`} value={order.status} onChange={(event) => changeStatus(order.orderNumber, event.target.value)}><option>Pending</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select></td></tr>)}</tbody></table></div> : <div className="admin-empty">មិនទាន់មានការកុម្ម៉ង់ទេ។ ការកុម្ម៉ង់ថ្មីនឹងបង្ហាញនៅទីនេះ។</div>}</section>;
@@ -231,7 +290,7 @@ function AdminPage() {
 
   const content = active.path === '/admin/products' ? renderProducts() : active.path === '/admin/orders' ? renderOrders() : active.path === '/admin/users' ? renderUsers() : active.path === '/admin/reports' ? renderReports() : renderOverview();
 
-  return <main className="admin-shell"><aside className="admin-sidebar"><div className="admin-brand"><span className="brand-mark">P</span><div><b>PHONE KH</b><small>ADMIN PANEL</small></div></div><div className="admin-menu-label">MENU</div>{sections.map((section) => <Link className={`admin-nav-link ${active.path === section.path ? 'active' : ''}`} to={section.path} key={section.path}><span>{section.icon}</span>{section.label}{active.path === section.path && <i />}</Link>)}<div className="admin-sidebar-bottom"><div className="admin-user"><div className="account-avatar">{user?.name?.charAt(0) || 'A'}</div><span><b>{user?.name || 'អ្នកគ្រប់គ្រង'}</b><small>Admin</small></span></div><Link to="/">← ត្រឡប់ទៅហាង</Link></div></aside><section className="admin-main"><header className="admin-topbar"><div><small>PHONE KH / ADMIN</small><h1>{active.label}</h1></div><Link className="admin-view-store" to="/">មើលហាង ↗</Link></header><div className="admin-content">{orderNotice && <div className="admin-order-notice" role="status" aria-live="polite"><span>{orderNotice}</span><button type="button" onClick={() => setOrderNotice('')} aria-label="បិទការជូនដំណឹង">×</button></div>}{error && <div className="form-error">{error}</div>}{content}</div><p className="admin-demo-note">ការគ្រប់គ្រង និងទិន្នន័យត្រូវបានរក្សាទុកក្នុង MongoDB។</p></section></main>;
+  return <main className="admin-shell"><aside className="admin-sidebar"><div className="admin-brand"><span className="brand-mark">P</span><div><b>PHONE KH</b><small>ADMIN PANEL</small></div></div><div className="admin-menu-label">MENU</div><nav className="admin-nav-links" aria-label="រុករកផ្ទាំងគ្រប់គ្រង">{sections.map((section) => <Link className={`admin-nav-link ${active.path === section.path ? 'active' : ''}`} to={section.path} key={section.path}><span>{section.icon}</span>{section.label}{active.path === section.path && <i />}</Link>)}</nav><div className="admin-sidebar-bottom"><div className="admin-user"><div className="account-avatar">{user?.name?.charAt(0) || 'A'}</div><span><b>{user?.name || 'អ្នកគ្រប់គ្រង'}</b><small>Admin</small></span></div><Link to="/">← ត្រឡប់ទៅហាង</Link></div></aside><section className="admin-main"><header className="admin-topbar"><div><small>PHONE KH / ADMIN</small><h1>{active.label}</h1></div><Link className="admin-view-store" to="/">មើលហាង ↗</Link></header><div className="admin-content">{orderNotice && <div className="admin-order-notice" role="status" aria-live="polite"><span>{orderNotice}</span><button type="button" onClick={() => setOrderNotice('')} aria-label="បិទការជូនដំណឹង">×</button></div>}{error && <div className="form-error">{error}</div>}{content}</div><p className="admin-demo-note">ការគ្រប់គ្រង និងទិន្នន័យត្រូវបានរក្សាទុកក្នុង MongoDB។</p></section></main>;
 }
 
 export default AdminPage;
