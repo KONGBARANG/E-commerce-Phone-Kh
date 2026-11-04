@@ -1,5 +1,10 @@
+const crypto = require('crypto');
 const User = require('../models/userModel');
+const Coupon = require('../models/couponModel');
 const { createPassword, createSession, verifyPassword } = require('../utils/auth');
+
+const maxProfileImageBytes = 1024 * 1024;
+const profileImagePattern = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
 
 const publicUser = (user) => ({
   id: user._id,
@@ -7,6 +12,8 @@ const publicUser = (user) => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  profileImage: user.profileImage || '',
+  welcomeCouponCode: user.welcomeCouponCode || '',
 });
 
 const register = async (req, res) => {
@@ -18,17 +25,34 @@ const register = async (req, res) => {
     return res.status(400).json({ message: 'Password must be between 6 and 128 characters.' });
   }
   const credentials = await createPassword(password);
+  let user;
   try {
-    const user = await User.create({
+    const couponCode = `WELCOME-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    user = await User.create({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: String(phone).trim(),
       passwordHash: credentials.hash,
       passwordSalt: credentials.salt,
+      welcomeCouponCode: couponCode,
+    });
+    await Coupon.create({
+      code: couponCode,
+      discountAmount: 50,
+      minimumSubtotal: 500,
+      owner: user._id,
+      maxUses: 2,
+      active: true,
     });
     const token = await createSession(user);
     res.status(201).json({ token, user: publicUser(user) });
   } catch (error) {
+    if (user) {
+      await Promise.all([
+        Coupon.deleteOne({ owner: user._id }),
+        User.deleteOne({ _id: user._id }),
+      ]);
+    }
     if (error.code === 11000) return res.status(409).json({ message: 'An account with this email already exists.' });
     throw error;
   }
@@ -49,6 +73,22 @@ const login = async (req, res) => {
 };
 
 const getMe = async (req, res) => {
+  res.json({ user: publicUser(req.user) });
+};
+
+const updateProfile = async (req, res) => {
+  const { profileImage } = req.body;
+  if (typeof profileImage !== 'string') {
+    return res.status(400).json({ message: 'A profile image value is required.' });
+  }
+  if (profileImage) {
+    const match = profileImagePattern.exec(profileImage);
+    if (!match || Buffer.from(match[2], 'base64').length > maxProfileImageBytes) {
+      return res.status(400).json({ message: 'Upload a JPEG, PNG, or WebP profile image no larger than 1 MB.' });
+    }
+  }
+  req.user.profileImage = profileImage;
+  await req.user.save();
   res.json({ user: publicUser(req.user) });
 };
 
@@ -81,4 +121,4 @@ const seedAdmin = async () => {
   }
 };
 
-module.exports = { getMe, login, logout, publicUser, register, seedAdmin };
+module.exports = { getMe, login, logout, publicUser, register, seedAdmin, updateProfile };

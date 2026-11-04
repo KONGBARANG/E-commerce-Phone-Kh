@@ -12,6 +12,7 @@ import {
   fetchMyOrders,
   fetchProducts,
   updateOrderPaymentStatus,
+  updateUserProfile,
   loginAccount,
   logoutAccount,
   registerAccount,
@@ -138,6 +139,12 @@ export function ShopProvider({ children }) {
   const signIn = useCallback((credentials) => authenticate(loginAccount, credentials), [authenticate]);
   const signUp = useCallback((details) => authenticate(registerAccount, details), [authenticate]);
 
+  const saveUserProfile = useCallback(async (profile) => {
+    const result = await updateUserProfile(profile);
+    setUser(result.user);
+    return result.user;
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await logoutAccount();
@@ -191,12 +198,12 @@ export function ShopProvider({ children }) {
     products, setProducts, refreshProducts,
     cart, setCart, addToCart, updateQuantity, removeFromCart, refreshCart, cartCount, cartTotal,
     orders, setOrders, refreshOrders, placeOrder,
-    user, setUser, signIn, signUp, signOut,
+    user, setUser, signIn, signUp, signOut, saveUserProfile,
     adminUsers, adminSummary, refreshAdmin, setOrderStatus, setPaymentStatus,
     loading, apiError, setApiError,
   }), [
     products, refreshProducts, cart, addToCart, updateQuantity, removeFromCart, refreshCart,
-    cartCount, cartTotal, orders, refreshOrders, placeOrder, user, signIn, signUp, signOut,
+    cartCount, cartTotal, orders, refreshOrders, placeOrder, user, signIn, signUp, signOut, saveUserProfile,
     adminUsers, adminSummary, refreshAdmin, setOrderStatus, setPaymentStatus, loading, apiError,
   ]);
 

@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, maxlength: 100 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     phone: { type: String, default: '', trim: true },
+    profileImage: { type: String, default: '', maxlength: 1400000 },
+    welcomeCouponCode: { type: String, default: '', maxlength: 40 },
     passwordHash: { type: String, required: true, select: false },
     passwordSalt: { type: String, required: true, select: false },
     role: { type: String, enum: ['customer', 'admin'], default: 'customer' },

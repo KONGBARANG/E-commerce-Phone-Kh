@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useShop } from '../context/useShop';
+import CartIcon from './CartIcon';
 
 function Navbar({ theme, themeMode, setThemeMode }) {
-  const { cartCount, user, products } = useShop();
+  const { cartCount, user } = useShop();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const brands = [...new Set(products.map((product) => product.brand).filter(Boolean))]
-    .sort((first, second) => first.localeCompare(second));
-  const countBy = (field, value) => products.filter((product) => product[field] === value).length;
-
   const search = (event) => {
     event.preventDefault();
     navigate(`/search?q=${encodeURIComponent(query.trim())}`);
@@ -71,40 +68,24 @@ function Navbar({ theme, themeMode, setThemeMode }) {
             </div>
           </details>
           <Link className="icon-link account-link" to={user ? '/account' : '/login'} aria-label={user ? `គណនី ${user.name}` : 'ចូលគណនី'}>
-            <span className="header-action-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
-              </svg>
+            <span className={`header-action-icon account-avatar-icon ${user?.profileImage ? 'has-profile-image' : ''}`} aria-hidden="true">
+              {user?.profileImage
+                ? <img src={user.profileImage} alt="" />
+                : <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+                </svg>}
             </span>
             <span className="header-action-copy"><small>គណនី</small><b>{user ? user.name : 'ចូលគណនី'}</b></span>
           </Link>
           <Link className="icon-link cart-link" to="/cart" aria-label={`កន្ត្រក ${cartCount} មុខ`}>
             <span className="header-action-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.5L21 8H6" />
-                <path d="M10 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM18 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
-              </svg>
+              <CartIcon />
               <i>{cartCount}</i>
             </span>
             <span className="header-action-copy"><small>កន្ត្រក</small><b>{cartCount} មុខ</b></span>
           </Link>
         </div>
       </header>
-      <nav className="category-nav" aria-label="រុករកផលិតផលតាមប្រភេទ និងម៉ាក">
-        <span className="category-nav-label">រុករកតាម</span>
-        <div className="category-nav-links">
-          <Link className="category-chip" to="/products?category=all"><span>ផលិតផលទាំងអស់</span><small>{products.length}</small></Link>
-          <Link className="category-chip" to="/phones"><span>ទូរស័ព្ទ</span><small>{countBy('category', 'Smartphone')}</small></Link>
-          <Link className="category-chip" to="/chargers"><span>ឆ្នាំងសាក</span><small>{countBy('category', 'Chargers')}</small></Link>
-          <Link className="category-chip" to="/products?category=Accessories"><span>គ្រឿងបន្លាស់</span><small>{countBy('category', 'Accessories')}</small></Link>
-          {brands.map((brand) => (
-            <Link className="category-chip category-brand-chip" to={`/products?category=all&brand=${encodeURIComponent(brand)}`} key={brand}>
-              <span>{brand}</span><small>{countBy('brand', brand)}</small>
-            </Link>
-          ))}
-          <Link className="category-chip category-deal-chip" to="/products?category=all&sort=price-asc">តម្លៃទាប</Link>
-        </div>
-      </nav>
     </>
   );
 }
