@@ -10,34 +10,56 @@ function PageIntro({ eyebrow, title, description }) {
   return <header className="page-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</header>;
 }
 
-export function ProductsPage({ search = false }) {
+export function ProductsPage({ search = false, categoryDefault = '' }) {
   const { products, addToCart, loading } = useShop();
   const [params, setParams] = useSearchParams();
   const keyword = params.get('q') || '';
   const brand = params.get('brand') || 'all';
-  const category = params.get('category') || 'all';
+  const category = params.get('category') || categoryDefault || 'all';
   const sort = params.get('sort') || 'featured';
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [storage, setStorage] = useState('all');
+  const minPrice = params.get('minPrice') || '';
+  const maxPrice = params.get('maxPrice') || '';
+  const storage = params.get('storage') || 'all';
   const brands = useMemo(
     () => [...new Set(products.map((product) => product.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
     [products]
   );
+  const categories = useMemo(
+    () => [...new Set(products.map((product) => product.category).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
+  const storageOptions = useMemo(
+    () => [...new Set(products.map((product) => product.storage).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
+  const priceRangeInvalid = minPrice !== '' && maxPrice !== '' && Number(minPrice) > Number(maxPrice);
 
   const filtered = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLocaleLowerCase();
     const matches = products.filter((product) => {
-      const queryMatches = !keyword || `${product.name} ${product.brand} ${product.category} ${product.description}`.toLowerCase().includes(keyword.toLowerCase());
+      const searchableFields = [
+        product.name,
+        product.sku,
+        product.brand,
+        product.category,
+        product.description,
+        product.storage,
+        product.ram,
+        ...(product.colors || []),
+      ];
+      const queryMatches = !normalizedKeyword || searchableFields.some((field) => String(field || '').toLocaleLowerCase().includes(normalizedKeyword));
       const brandMatches = brand === 'all' || product.brand === brand;
       const categoryMatches = category === 'all' || product.category === category;
-      const priceMatches = (!minPrice || Number(product.price) >= Number(minPrice)) && (!maxPrice || Number(product.price) <= Number(maxPrice));
-      const storageMatches = storage === 'all' || (product.storage || '').includes(storage);
+      const priceMatches = !priceRangeInvalid
+        && (!minPrice || Number(product.price) >= Number(minPrice))
+        && (!maxPrice || Number(product.price) <= Number(maxPrice));
+      const storageMatches = storage === 'all' || String(product.storage || '').toLocaleLowerCase() === storage.toLocaleLowerCase();
       return queryMatches && brandMatches && categoryMatches && priceMatches && storageMatches;
     });
     if (sort === 'price-asc') matches.sort((a, b) => Number(a.price) - Number(b.price));
     if (sort === 'price-desc') matches.sort((a, b) => Number(b.price) - Number(a.price));
     return matches;
-  }, [products, keyword, brand, category, minPrice, maxPrice, storage, sort]);
+  }, [products, keyword, brand, category, minPrice, maxPrice, storage, sort, priceRangeInvalid]);
 
   const update = (key, value) => {
     const next = new URLSearchParams(params);
@@ -45,13 +67,26 @@ export function ProductsPage({ search = false }) {
     else next.set(key, value);
     setParams(next);
   };
+  const clearFilters = () => {
+    const next = new URLSearchParams();
+    if (keyword) next.set('q', keyword);
+    if (category !== categoryDefault || params.has('category')) next.set('category', category);
+    setParams(next);
+  };
+  const categoryTitle = category === 'Smartphone' ? 'ទូរស័ព្ទ' : category === 'Chargers' ? 'ឆ្នាំងសាក' : category === 'Accessories' ? 'គ្រឿងបន្លាស់' : 'ផលិតផលទាំងអស់';
 
   return (
     <main className="content-wrap listing-page">
-      <PageIntro eyebrow={search ? 'លទ្ធផលស្វែងរក' : 'រុករកផលិតផល'} title={search ? `លទ្ធផលសម្រាប់ “${keyword}”` : 'ផលិតផលទាំងអស់'} description="ស្វែងរកទូរស័ព្ទ និងគ្រឿងបន្លាស់ដែលស័ក្តិសមនឹងអ្នក។" />
+      <PageIntro eyebrow={search ? 'លទ្ធផលស្វែងរក' : 'រុករកផលិតផល'} title={search ? `លទ្ធផលសម្រាប់ “${keyword}”` : categoryTitle} description="ជ្រើសរើសប្រភេទផលិតផល ដើម្បីស្វែងរកទំនិញបានងាយ និងមិនលាយគ្នា។" />
+      {!search && <nav className="product-category-tabs" aria-label="ប្រភេទផលិតផល">
+        <Link className={category === 'Smartphone' ? 'active' : ''} to="/phones">ទូរស័ព្ទ <span>{products.filter((product) => product.category === 'Smartphone').length}</span></Link>
+        <Link className={category === 'Chargers' ? 'active' : ''} to="/chargers">ឆ្នាំងសាក <span>{products.filter((product) => product.category === 'Chargers').length}</span></Link>
+        <Link className={category === 'Accessories' ? 'active' : ''} to="/products?category=Accessories">គ្រឿងបន្លាស់ <span>{products.filter((product) => product.category === 'Accessories').length}</span></Link>
+        <Link className={category === 'all' ? 'active' : ''} to="/products?category=all">ផលិតផលទាំងអស់ <span>{products.length}</span></Link>
+      </nav>}
       <div className="listing-layout">
         <aside className="filter-panel">
-          <div className="filter-title"><h3>តម្រងផលិតផល</h3><button onClick={() => { setParams({}); setMinPrice(''); setMaxPrice(''); setStorage('all'); }}>សម្អាត</button></div>
+          <div className="filter-title"><h3>តម្រង{category === 'Smartphone' ? 'ទូរស័ព្ទ' : category === 'Chargers' ? 'ឆ្នាំងសាក' : 'ផលិតផល'}</h3><button type="button" onClick={clearFilters}>សម្អាត</button></div>
           <div className="filter-fields">
             <label>ម៉ាក
               <select value={brand} onChange={(event) => update('brand', event.target.value)}>
@@ -60,15 +95,16 @@ export function ProductsPage({ search = false }) {
             </label>
             <label>ប្រភេទ
               <select value={category} onChange={(event) => update('category', event.target.value)}>
-                <option value="all">ប្រភេទទាំងអស់</option><option value="Smartphone">ស្មាតហ្វូន</option><option value="Accessories">គ្រឿងបន្លាស់</option>
+                <option value="all">ប្រភេទទាំងអស់</option>{categories.map((item) => <option key={item} value={item}>{item === 'Smartphone' ? 'ស្មាតហ្វូន' : item === 'Accessories' ? 'គ្រឿងបន្លាស់' : item === 'Chargers' ? 'ឆ្នាំងសាក' : item}</option>)}
               </select>
             </label>
             <div className="price-filter">
               <div className="filter-label">តម្លៃ ($)</div>
-              <div className="price-inputs"><input aria-label="តម្លៃទាបបំផុត" type="number" min="0" placeholder="ពី" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /><span>—</span><input aria-label="តម្លៃខ្ពស់បំផុត" type="number" min="0" placeholder="ដល់" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /></div>
+              <div className="price-inputs"><input aria-label="តម្លៃទាបបំផុត" type="number" min="0" placeholder="ពី" value={minPrice} onChange={(event) => update('minPrice', event.target.value)} /><span>—</span><input aria-label="តម្លៃខ្ពស់បំផុត" type="number" min="0" placeholder="ដល់" value={maxPrice} onChange={(event) => update('maxPrice', event.target.value)} /></div>
+              {priceRangeInvalid && <small className="filter-error" role="alert">តម្លៃទាបបំផុតត្រូវតិចជាង ឬស្មើតម្លៃខ្ពស់បំផុត។</small>}
             </div>
-            <label>អង្គផ្ទុកទិន្នន័យ
-              <select value={storage} onChange={(event) => setStorage(event.target.value)}><option value="all">គ្រប់ទំហំ</option><option>128GB</option><option>256GB</option><option>512GB</option><option>1TB</option><option>2TB</option></select>
+            <label>ទំហំ / លក្ខណៈ
+              <select value={storage} onChange={(event) => update('storage', event.target.value)}><option value="all">ទាំងអស់</option>{storageOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
             </label>
           </div>
           <div className="filter-note">ផលិតផលទាំងអស់មានការធានា និងការត្រួតពិនិត្យគុណភាព។</div>
@@ -77,7 +113,7 @@ export function ProductsPage({ search = false }) {
           <div className="listing-toolbar"><span>បង្ហាញ <b>{filtered.length}</b> ផលិតផល</span><label>តម្រៀបតាម
             <select value={sort} onChange={(event) => update('sort', event.target.value)}><option value="featured">ពេញនិយម</option><option value="price-asc">តម្លៃ៖ ទាបទៅខ្ពស់</option><option value="price-desc">តម្លៃ៖ ខ្ពស់ទៅទាប</option></select>
           </label></div>
-          {loading ? <p className="loading-note">កំពុងទាញផលិតផលពី Database...</p> : filtered.length ? <div className="products-grid">{filtered.map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <div className="empty-state"><span>⌕</span><h2>មិនមានផលិតផលត្រូវនឹងការស្វែងរក</h2><p>សូមព្យាយាមប្ដូរពាក្យស្វែងរក ឬតម្រងរបស់អ្នក។</p><Link className="button-primary" to="/products">មើលផលិតផលទាំងអស់</Link></div>}
+          {loading ? <p className="loading-note">កំពុងទាញផលិតផលពី Database...</p> : filtered.length ? <div className="products-grid">{filtered.map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <div className="empty-state"><span>⌕</span><h2>{priceRangeInvalid ? 'សូមពិនិត្យចន្លោះតម្លៃ' : 'មិនមានផលិតផលត្រូវនឹងការស្វែងរក'}</h2><p>{priceRangeInvalid ? 'កំណត់តម្លៃទាបបំផុតឱ្យតិចជាង ឬស្មើតម្លៃខ្ពស់បំផុត។' : 'សូមព្យាយាមប្ដូរពាក្យស្វែងរក ឬតម្រងរបស់អ្នក។'}</p><button className="button-primary" type="button" onClick={clearFilters}>សម្អាតតម្រង</button></div>}
         </section>
       </div>
     </main>
@@ -86,8 +122,9 @@ export function ProductsPage({ search = false }) {
 
 export function ProductDetailsPage() {
   const { id } = useParams();
-  const { products, addToCart } = useShop();
+  const { products, addToCart, loading } = useShop();
   const product = products.find((item) => item._id === id);
+  if (loading) return <main className="empty-state"><p className="loading-note">កំពុងទាញព័ត៌មានផលិតផល...</p></main>;
   if (!product) return <div className="empty-state"><h2>រកមិនឃើញផលិតផល</h2><Link className="button-primary" to="/products">ត្រឡប់ទៅផលិតផល</Link></div>;
   return <ProductDetails key={product._id} product={product} addToCart={addToCart} />;
 }
@@ -98,7 +135,9 @@ function ProductDetails({ product, addToCart }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || '');
   const images = [...new Set([product.image, ...(product.images || [])].filter(Boolean))].slice(0, 4);
-  const addSelectedToCart = () => addToCart(product, quantity, selectedColor);
+  const stock = Number(product.stock || 0);
+  const outOfStock = stock <= 0;
+  const addSelectedToCart = () => outOfStock ? null : addToCart(product, quantity, selectedColor);
 
   return (
     <main className="content-wrap details-page">
@@ -110,13 +149,13 @@ function ProductDetails({ product, addToCart }) {
             {images.map((image, index) => <button className={selectedImage === index ? 'active' : ''} type="button" onClick={() => setSelectedImage(index)} aria-label={`មើលរូបភាព ${index + 1}`} aria-pressed={selectedImage === index} key={`${image}-${index}`}><img src={image} alt="" /></button>)}
           </div>}
         </div>
-        <div className="detail-copy"><span className="eyebrow">{product.brand} · {product.category}</span><h1>{product.name}</h1><div className="detail-rating">★★★★★ <span>{product.rating || 4.8} · មានការវាយតម្លៃពីអតិថិជន</span></div>
+        <div className="detail-copy"><span className="eyebrow">{product.brand} · {product.category}</span><h1>{product.name}</h1>{product.sku && <p className="product-sku">SKU: {product.sku}</p>}<div className="detail-rating">★★★★★ <span>{product.rating || 4.8} · មានការវាយតម្លៃពីអតិថិជន</span></div>
           <div className="detail-price">{money(product.price)} {product.oldPrice && <del>{money(product.oldPrice)}</del>}</div>
           <p className="detail-description">{product.description || 'ផលិតផលគុណភាពខ្ពស់ មានការធានាពេញលេញ និងរួចរាល់សម្រាប់ដឹកជញ្ជូន។'}</p>
           {product.colors?.length > 0 && <fieldset className="color-options"><legend>ជ្រើសរើសពណ៌ <span>{selectedColor}</span></legend><div>{product.colors.map((color) => <button className={selectedColor === color ? 'selected' : ''} type="button" onClick={() => { setSelectedColor(color); setSelectedImage(0); }} aria-pressed={selectedColor === color} key={color}>{color}</button>)}</div></fieldset>}
-          <div className="spec-grid"><div><small>អង្គផ្ទុកទិន្នន័យ</small><b>{product.storage || '—'}</b></div><div><small>RAM</small><b>{product.ram || '—'}</b></div><div><small>ស្តុក</small><b>{product.stock > 0 ? `${product.stock} គ្រឿង` : 'ទាក់ទងមកយើង'}</b></div></div>
-          <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}>＋</button></div><button className="button-primary" onClick={addSelectedToCart}>បន្ថែមទៅកន្ត្រក</button></div>
-          <button className="button-outline full-button" onClick={async () => { const updated = await addSelectedToCart(); if (updated) navigate('/checkout'); }}>ទិញឥឡូវនេះ →</button>
+          <div className="spec-grid">{product.category === 'Chargers' ? <div><small>កម្លាំងសាក / លក្ខណៈ</small><b>{product.storage || '—'}</b></div> : <><div><small>អង្គផ្ទុកទិន្នន័យ</small><b>{product.storage || '—'}</b></div><div><small>RAM</small><b>{product.ram || '—'}</b></div></>}<div><small>ស្តុក</small><b>{product.stock > 0 ? `${product.stock} គ្រឿង` : 'ទាក់ទងមកយើង'}</b></div></div>
+          <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" disabled={quantity <= 1} onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" disabled={quantity >= stock} onClick={() => setQuantity(Math.min(stock, quantity + 1))}>＋</button></div><button className="button-primary" disabled={outOfStock} onClick={addSelectedToCart}>{outOfStock ? 'អស់ស្តុក' : 'បន្ថែមទៅកន្ត្រក'}</button></div>
+          <button className="button-outline full-button" disabled={outOfStock} onClick={async () => { const updated = await addSelectedToCart(); if (updated) navigate('/checkout'); }}>{outOfStock ? 'អស់ស្តុក' : 'ទិញឥឡូវនេះ →'}</button>
           <div className="delivery-note">✓ ដឹកជញ្ជូនឥតគិតថ្លៃលើការកុម្ម៉ង់ $300 ឡើងទៅ<br />✓ ធានាផលិតផល 12 ខែ · អាចប្ដូរបានក្នុង 7 ថ្ងៃ</div>
         </div>
       </div>

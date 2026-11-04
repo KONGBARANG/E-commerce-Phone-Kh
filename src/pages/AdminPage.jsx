@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 import { createProduct as saveProduct, deleteProduct as removeProduct, setProduct, setUserRole } from '../services/api';
 
 const defaultProductImage = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85';
 const parseList = (value) => String(value || '').split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
 const colorOptions = ['ខ្មៅ', 'ស', 'ប្រាក់', 'ប្រផេះ', 'ខៀវ', 'មាស', 'បៃតង', 'ស្វាយ', 'ក្រហម', 'ផ្កាឈូក'];
-const storageOptions = ['64GB', '128GB', '256GB', '512GB', '1TB', '2TB', 'USB-C', 'Bluetooth', '46mm', '20000mAh'];
+const storageOptions = ['18W', '20W', '25W', '30W', '45W', '65W', '100W', '64GB', '128GB', '256GB', '512GB', '1TB', '2TB', 'USB-C', 'USB-A', 'Lightning', 'Bluetooth', '46mm', '20000mAh'];
 const ramOptions = ['4GB', '6GB', '8GB', '12GB', '16GB', '24GB'];
 
 const sections = [
@@ -23,6 +23,10 @@ function AdminPage() {
     refreshAdmin, setOrderStatus, setPaymentStatus, loading,
   } = useShop();
   const { pathname } = useLocation();
+  const [productParams, setProductParams] = useSearchParams();
+  const productCategory = ['Smartphone', 'Chargers', 'Accessories'].includes(productParams.get('category'))
+    ? productParams.get('category')
+    : 'Smartphone';
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [selectedColors, setSelectedColors] = useState([]);
@@ -100,6 +104,7 @@ function AdminPage() {
       name: String(form.get('name')).trim(),
       brand: String(form.get('brand')).trim(),
       category: String(form.get('category')),
+      ...(String(form.get('sku') || '').trim() ? { sku: String(form.get('sku')).trim() } : {}),
       price: Number(form.get('price')),
       ...(form.get('oldPrice') ? { oldPrice: Number(form.get('oldPrice')) } : {}),
       image,
@@ -190,12 +195,23 @@ function AdminPage() {
   };
 
   const renderProducts = () => <section className="admin-panel">
-    <div className="panel-heading"><div><h2>បញ្ជីផលិតផល</h2><p>បន្ថែម និងគ្រប់គ្រងស្តុកផលិតផលនៅក្នុង Database</p></div><button className="button-primary" onClick={toggleProductForm}>{showForm ? 'បោះបង់' : '＋ បន្ថែមផលិតផល'}</button></div>
+    <div className="panel-heading"><div><h2>គ្រប់គ្រងផលិតផល</h2><p>បែងចែកទូរស័ព្ទ ឆ្នាំងសាក និងគ្រឿងបន្លាស់ ដើម្បីគ្រប់គ្រងបានងាយ។</p></div><button className="button-primary" onClick={toggleProductForm}>{showForm ? 'បោះបង់' : `＋ បន្ថែម${productCategory === 'Smartphone' ? 'ទូរស័ព្ទ' : productCategory === 'Chargers' ? 'ឆ្នាំងសាក' : 'គ្រឿងបន្លាស់'}`}</button></div>
+    <nav className="admin-product-tabs" aria-label="ប្រភេទផលិតផលក្នុង Admin">
+      {[['Smartphone', 'ទូរស័ព្ទ'], ['Chargers', 'ឆ្នាំងសាក'], ['Accessories', 'គ្រឿងបន្លាស់']].map(([value, label]) => (
+        <button className={productCategory === value ? 'active' : ''} type="button" aria-pressed={productCategory === value} onClick={() => {
+          setShowForm(false);
+          setEditingProduct(null);
+          setSelectedColors([]);
+          setProductParams({ category: value });
+        }} key={value}>{label}<span>{products.filter((product) => product.category === value).length}</span></button>
+      ))}
+    </nav>
     {notice && <div className="success-box">{notice}</div>}
     {showForm && <form key={editingProduct?._id || 'new-product'} className="admin-product-form" onSubmit={createProduct}>
       <label>ឈ្មោះផលិតផល<input name="name" required defaultValue={editingProduct?.name || ''} /></label>
       <label>ម៉ាក<input name="brand" required defaultValue={editingProduct?.brand || ''} /></label>
-      <label>ប្រភេទ<select name="category" defaultValue={editingProduct?.category || 'Smartphone'}><option>Smartphone</option><option>Accessories</option></select></label>
+      <label>លេខសម្គាល់ SKU<input name="sku" defaultValue={editingProduct?.sku || ''} placeholder="ឧ. APP-IP16-256-BLK" /><small>ប្រើលេខខុសគ្នាសម្រាប់កំណែផលិតផលនីមួយៗ។</small></label>
+      <label>ប្រភេទ<select name="category" defaultValue={editingProduct?.category || productCategory}><option value="Smartphone">ស្មាតហ្វូន</option><option value="Accessories">គ្រឿងបន្លាស់</option><option value="Chargers">ឆ្នាំងសាក</option></select></label>
       <label>តម្លៃ ($)<input name="price" type="number" min="0" required defaultValue={editingProduct?.price || ''} /></label>
       <label>តម្លៃដើម ($)<input name="oldPrice" type="number" min="0" defaultValue={editingProduct?.oldPrice || ''} /></label>
       <label>ស្តុក<input name="stock" type="number" min="0" defaultValue={editingProduct?.stock ?? 1} required /></label>
@@ -238,9 +254,9 @@ function AdminPage() {
         </div>
         <div><b>មើលរូបភាពជាមុន</b><small>អតិថិជនអាចចុចលើរូបតូចៗ ដើម្បីមើលរូបនីមួយៗ។</small></div>
       </div>
-      <label>Memory
+      <label>ទំហំ / លក្ខណៈ / កម្លាំងសាក
         <select name="storage" defaultValue={editingProduct?.storage || ''}>
-          <option value="">ជ្រើសរើស Memory</option>
+          <option value="">ជ្រើសរើសលក្ខណៈ</option>
           {[...new Set([...storageOptions, ...(editingProduct?.storage ? [editingProduct.storage] : [])])].map((option) => <option key={option}>{option}</option>)}
         </select>
       </label>
@@ -253,7 +269,7 @@ function AdminPage() {
       <label className="span-two">ការពិពណ៌នា<input name="description" defaultValue={editingProduct?.description || ''} /></label>
       <button className="button-primary" type="submit">{editingProduct ? 'រក្សាទុកការកែប្រែ' : 'រក្សាទុកផលិតផល'}</button>
     </form>}
-    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>ផលិតផល</th><th>ប្រភេទ</th><th>តម្លៃ</th><th>ស្តុក</th><th>សកម្មភាព</th></tr></thead><tbody>{products.map((product) => <tr key={product._id}><td><div className="admin-product-name"><img src={product.image} alt="" /><span><b>{product.name}</b><small>{product.brand}</small></span></div></td><td>{product.category}</td><td>${product.price}</td><td><span className={product.stock < 5 ? 'stock-low' : 'stock-ok'}>{product.stock} គ្រឿង</span></td><td><button className="table-action" onClick={() => editProduct(product)}>កែ</button> <button className="table-action" aria-label={`លុប ${product.name}`} onClick={() => removeProductFromStore(product._id)}>លុប</button></td></tr>)}</tbody></table></div>
+    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>ផលិតផល</th><th>លេខ SKU / លក្ខណៈ</th><th>ប្រភេទ</th><th>តម្លៃ</th><th>ស្តុក</th><th>សកម្មភាព</th></tr></thead><tbody>{products.filter((product) => product.category === productCategory).map((product) => <tr key={product._id}><td><div className="admin-product-name"><img src={product.image} alt="" /><span><b>{product.name}</b><small>{product.brand}</small></span></div></td><td>{product.sku && <small>SKU: {product.sku}</small>}<small>{[product.storage, product.ram && `RAM ${product.ram}`].filter(Boolean).join(' · ') || '—'}</small></td><td>{product.category === 'Smartphone' ? 'ស្មាតហ្វូន' : product.category === 'Chargers' ? 'ឆ្នាំងសាក' : 'គ្រឿងបន្លាស់'}</td><td>${product.price}</td><td><span className={product.stock < 5 ? 'stock-low' : 'stock-ok'}>{product.stock} គ្រឿង</span></td><td><button className="table-action" onClick={() => editProduct(product)}>កែ</button> <button className="table-action" aria-label={`លុប ${product.name}`} onClick={() => removeProductFromStore(product._id)}>លុប</button></td></tr>)}</tbody></table>{products.filter((product) => product.category === productCategory).length === 0 && <div className="admin-empty">មិនទាន់មានផលិតផលក្នុងប្រភេទនេះទេ។ ចុច “បន្ថែម” ដើម្បីបញ្ចូលផលិតផលថ្មី។</div>}</div>
   </section>;
 
   const renderOrders = () => <section className="admin-panel"><div className="panel-heading"><div><h2>ការកុម្ម៉ង់ទាំងអស់</h2><p>បញ្ជីនេះធ្វើបច្ចុប្បន្នភាពរៀងរាល់ 15 វិនាទី។ សូមផ្ទៀងផ្ទាត់ការបង់ប្រាក់ក្រៅប្រព័ន្ធ មុនសម្គាល់ថាបានបង់។</p></div></div>{orders.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/ស្ថានភាពបង់</th><th>ស្ថានភាពកុម្ម៉ង់</th></tr></thead><tbody>{orders.map((order) => <tr key={order._id}><td><b>{order.orderNumber}</b></td><td><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small><small>{(order.items || []).map((item) => `${item.name}${item.color ? ` · ពណ៌ ${item.color}` : ''} × ${item.quantity}`).join(', ')}</small></td><td>{order.phone}</td><td>${order.total}</td><td>{order.payment}<br /><select className="status-select" aria-label={`ស្ថានភាពទូទាត់ ${order.orderNumber}`} value={order.paymentStatus || 'Unpaid'} onChange={(event) => changePaymentStatus(order.orderNumber, event.target.value)}><option value="Unpaid">មិនទាន់បង់</option><option value="Paid">បានបង់ប្រាក់</option></select></td><td><select className="status-select" aria-label={`ស្ថានភាពការកុម្ម៉ង់ ${order.orderNumber}`} value={order.status} onChange={(event) => changeStatus(order.orderNumber, event.target.value)}><option>Pending</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select></td></tr>)}</tbody></table></div> : <div className="admin-empty">មិនទាន់មានការកុម្ម៉ង់ទេ។ ការកុម្ម៉ង់ថ្មីនឹងបង្ហាញនៅទីនេះ។</div>}</section>;

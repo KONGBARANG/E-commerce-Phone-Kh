@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { useShop } from '../context/useShop';
@@ -5,6 +6,18 @@ import { useShop } from '../context/useShop';
 function HomePage() {
   const { products, addToCart, apiError, loading } = useShop();
   const featured = products.slice(0, 4);
+  const phones = products.filter((product) => product.category?.toLowerCase() === 'smartphone');
+  const chargers = products.filter((product) => product.category?.toLowerCase() === 'chargers');
+  const [featuredPhoneIndex, setFeaturedPhoneIndex] = useState(0);
+  const featuredPhone = phones.length ? phones[featuredPhoneIndex % phones.length] : null;
+
+  useEffect(() => {
+    if (phones.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const intervalId = window.setInterval(() => {
+      setFeaturedPhoneIndex((index) => (index + 1) % phones.length);
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [phones.length]);
 
   return (
     <main>
@@ -13,14 +26,20 @@ function HomePage() {
           <div className="eyebrow"><span /> សូមស្វាគមន៍មកកាន់ PHONE KH</div>
           <h1>បច្ចេកវិទ្យា<br />ដែលអ្នក <em>ស្រឡាញ់</em></h1>
           <p>ស្វែងរកទូរស័ព្ទ និងឧបករណ៍បច្ចេកវិទ្យាថ្មីៗ តម្លៃល្អបំផុត និងសេវាកម្មដែលអ្នកទុកចិត្តបាន។</p>
-          <div className="hero-buttons"><Link className="button-primary" to="/products">ទិញទំនិញឥឡូវនេះ <span>→</span></Link><Link className="text-link" to="/about">ស្វែងយល់បន្ថែម</Link></div>
+          <div className="hero-buttons"><Link className="button-primary" to="/phones">ទិញទំនិញឥឡូវនេះ <span>→</span></Link><Link className="text-link" to="/about">ស្វែងយល់បន្ថែម</Link></div>
           <div className="hero-stats"><div><strong>2,500<span>+</span></strong><small>អតិថិជនពេញចិត្ត</small></div><div><strong>100<span>%</span></strong><small>ផលិតផលមានគុណភាព</small></div><div><strong>1<span> ឆ្នាំ</span></strong><small>ការធានាផលិតផល</small></div></div>
         </div>
         <div className="hero-art">
           <div className="hero-orbit" />
-          <img src={products[0]?.image} alt="ស្មាតហ្វូនថ្មី" />
-          <div className="hero-float-card"><span className="float-stars">★★★★★</span><b>គុណភាពដែលទុកចិត្តបាន</b><small>សេវាកម្មល្អបំផុតនៅកម្ពុជា</small></div>
-          <div className="hero-sale"><small>សន្សំបាន</small><strong>30%</strong><small>សប្ដាហ៍នេះ</small></div>
+          {featuredPhone && <div className="hero-product-frame" key={featuredPhone._id}>
+            <img src={featuredPhone.image} alt={featuredPhone.name} />
+          </div>}
+          {featuredPhone && <div className="hero-product-caption">
+            <span>{featuredPhone.brand || 'ស្មាតហ្វូន'}</span>
+            <b>{featuredPhone.name}</b>
+            <small>{[featuredPhone.storage, featuredPhone.ram && `RAM ${featuredPhone.ram}`].filter(Boolean).join(' · ')}</small>
+            <strong>${Number(featuredPhone.price || 0).toLocaleString()}</strong>
+          </div>}
         </div>
       </section>
       {apiError && !products.length && <div className="content-wrap demo-data-note">មិនអាចទាញទិន្នន័យពី Database បានទេ។ សូមពិនិត្យ backend និងការតភ្ជាប់ MongoDB។</div>}
@@ -33,16 +52,26 @@ function HomePage() {
       </section>
 
       <section className="category-section content-wrap">
-        <div className="section-heading"><div><span className="eyebrow">ស្វែងរកតាមប្រភេទ</span><h2>ទិញតាមប្រភេទផលិតផល</h2></div><Link className="text-link" to="/products">មើលទាំងអស់ →</Link></div>
-        <div className="category-cards">
-          <Link to="/products?brand=Apple" className="category-card category-apple"><span>01 / PREMIUM</span><h3>Apple</h3><p>iPhone, iPad និងគ្រឿងបន្លាស់</p><b>ស្វែងរកផលិតផល →</b><div></div></Link>
-          <Link to="/products?brand=Samsung" className="category-card category-samsung"><span>02 / INNOVATION</span><h3>Samsung</h3><p>Galaxy សម្រាប់ការងារ និងកម្សាន្ត</p><b>ស្វែងរកផលិតផល →</b><div>S</div></Link>
-          <Link to="/products?category=Accessories" className="category-card category-accessories"><span>03 / YOUR DAILY TECH</span><h3>គ្រឿងបន្លាស់</h3><p>បំពេញបទពិសោធន៍បច្ចេកវិទ្យារបស់អ្នក</p><b>ស្វែងរកផលិតផល →</b><div>⌁</div></Link>
-        </div>
+        <div className="section-heading"><div><span className="eyebrow">ម៉ូដែលទូរស័ព្ទដែលមាន</span><h2>ស្វែងរកទូរស័ព្ទតាមម៉ូដែល</h2><p>រុករកទូរស័ព្ទដែលមានក្នុងហាង ឆ្លងតាមម៉ូដែល ម៉ាក និងទំហំផ្ទុក។</p></div><Link className="text-link" to="/phones">មើលទាំងអស់ →</Link></div>
+        {loading ? <p className="loading-note">កំពុងទាញបញ្ជីទូរស័ព្ទ...</p> : phones.length ? <div className="phone-carousel" aria-label="បញ្ជីម៉ូដែលទូរស័ព្ទ">
+          <div className="phone-carousel-track">
+            {[false, true].map((duplicate) => <div className="phone-carousel-group" aria-hidden={duplicate || undefined} key={duplicate ? 'duplicate' : 'products'}>
+              {phones.map((product) => <Link className="phone-carousel-card" to={`/products/${product._id}`} tabIndex={duplicate ? -1 : undefined} key={`${duplicate ? 'duplicate-' : ''}${product._id}`}>
+                <div className="phone-carousel-image"><img src={product.image} alt={duplicate ? '' : product.name} loading="lazy" /></div>
+                <div className="phone-carousel-info"><span>{product.brand || 'ទូរស័ព្ទ'}</span><h3>{product.name}</h3><p>{[product.storage, product.ram && `RAM ${product.ram}`].filter(Boolean).join(' · ') || 'មើលលម្អិត'}</p><strong>${Number(product.price || 0).toLocaleString()}</strong></div>
+              </Link>)}
+            </div>)}
+          </div>
+        </div> : <p className="loading-note">មិនទាន់មានទូរស័ព្ទក្នុងបញ្ជីផលិតផលទេ។</p>}
+      </section>
+
+      <section className="charger-section content-wrap">
+        <div className="section-heading"><div><span className="eyebrow">សាកថ្មបានងាយស្រួល</span><h2>ឆ្នាំងសាក និងអាដាប់ទ័រ</h2><p>ជ្រើសរើសឆ្នាំងសាកតាមកម្លាំងសាក និងប្រភេទការតភ្ជាប់។</p></div><Link className="text-link" to="/products?category=Chargers">មើលឆ្នាំងសាក →</Link></div>
+        {loading ? <p className="loading-note">កំពុងទាញបញ្ជីឆ្នាំងសាក...</p> : chargers.length ? <div className="products-grid">{chargers.slice(0, 4).map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <div className="charger-empty"><span aria-hidden="true">ϟ</span><p>ឆ្នាំងសាកថ្មីៗនឹងបង្ហាញនៅទីនេះ។</p></div>}
       </section>
 
       <section className="featured-section content-wrap">
-        <div className="section-heading"><div><span className="eyebrow">ជម្រើសរបស់អតិថិជន</span><h2>ផលិតផលពេញនិយម</h2><p>ផលិតផលល្អៗ ដែលអតិថិជនរបស់យើងចូលចិត្តជាងគេ។</p></div><Link className="text-link" to="/products">ផលិតផលទាំងអស់ →</Link></div>
+        <div className="section-heading"><div><span className="eyebrow">ជម្រើសរបស់អតិថិជន</span><h2>ផលិតផលពេញនិយម</h2><p>ផលិតផលល្អៗ ដែលអតិថិជនរបស់យើងចូលចិត្តជាងគេ។</p></div><Link className="text-link" to="/products?category=all">ផលិតផលទាំងអស់ →</Link></div>
         {loading ? <p className="loading-note">កំពុងទាញផលិតផលពី Database...</p> : featured.length ? <div className="products-grid">{featured.map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <p className="loading-note">មិនមានផលិតផលក្នុង Database នៅឡើយទេ។</p>}
       </section>
 
