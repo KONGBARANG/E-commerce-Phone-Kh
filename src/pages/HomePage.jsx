@@ -5,8 +5,8 @@ import { useShop } from '../context/useShop';
 
 function HomePage() {
   const { products, addToCart, apiError, loading } = useShop();
-  const featured = products.slice(0, 4);
   const phones = products.filter((product) => product.category?.toLowerCase() === 'smartphone');
+  const featured = [...phones].sort((first, second) => Number(second.price) - Number(first.price)).slice(0, 4);
   const chargers = products.filter((product) => product.category?.toLowerCase() === 'chargers');
   const [featuredPhoneIndex, setFeaturedPhoneIndex] = useState(0);
   const featuredPhone = phones.length ? phones[featuredPhoneIndex % phones.length] : null;
@@ -71,7 +71,7 @@ function HomePage() {
       </section>
 
       <section className="featured-section content-wrap">
-        <div className="section-heading"><div><span className="eyebrow">ជម្រើសរបស់អតិថិជន</span><h2>ផលិតផលពេញនិយម</h2><p>ផលិតផលល្អៗ ដែលអតិថិជនរបស់យើងចូលចិត្តជាងគេ។</p></div><Link className="text-link" to="/products?category=all">ផលិតផលទាំងអស់ →</Link></div>
+        <div className="section-heading"><div><span className="eyebrow">ស្មាតហ្វូនតម្លៃខ្ពស់</span><h2>ទូរស័ព្ទពេញនិយមតម្លៃខ្ពស់</h2><p>បង្ហាញតែទូរស័ព្ទដែលមានតម្លៃខ្ពស់ជាងគេក្នុងហាង។</p></div><Link className="text-link" to="/phones">មើលទូរស័ព្ទទាំងអស់ →</Link></div>
         {loading ? <p className="loading-note">កំពុងទាញផលិតផលពី Database...</p> : featured.length ? <div className="products-grid">{featured.map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <p className="loading-note">មិនមានផលិតផលក្នុង Database នៅឡើយទេ។</p>}
       </section>
 

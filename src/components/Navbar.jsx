@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 
 function Navbar({ theme, themeMode, setThemeMode }) {
   const { cartCount, user, products } = useShop();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const brands = [...new Set(products.map((product) => product.brand).filter(Boolean))]
     .sort((first, second) => first.localeCompare(second));
   const countBy = (field, value) => products.filter((product) => product[field] === value).length;
@@ -24,10 +25,10 @@ function Navbar({ theme, themeMode, setThemeMode }) {
           <span>PHONE<span className="brand-accent">KH</span><small>TECH FOR EVERYONE</small></span>
         </Link>
         <nav className="primary-nav" aria-label="Main navigation">
-          <Link to="/">ទំព័រដើម</Link>
-          <Link to="/products">ផលិតផល</Link>
-          <Link to="/about">អំពីយើង</Link>
-          <Link to="/contact">ទំនាក់ទំនង</Link>
+          <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>ទំព័រដើម</NavLink>
+          <NavLink to="/products?category=all" className={() => ['/products', '/phones', '/chargers'].includes(pathname) ? 'active' : ''}>ផលិតផល</NavLink>
+          <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''}>អំពីយើង</NavLink>
+          <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''}>ទំនាក់ទំនង</NavLink>
         </nav>
         <form className="search-box" onSubmit={search}>
           <span aria-hidden="true">⌕</span>
