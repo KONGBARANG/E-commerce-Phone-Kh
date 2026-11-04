@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { getProductImageUrl } from '../utils/productImage';
 
 function ProductCard({ product, addToCart }) {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ function ProductCard({ product, addToCart }) {
         data-image-background={product.imageBackground || 'light'}
       >
         {product.badge && <span className="product-badge">{product.badge}</span>}
-        <img src={product.image} alt={product.name} loading="lazy" />
+        <img src={getProductImageUrl(product.image, 900)} alt={product.name} loading="lazy" />
         <span className="quick-view">មើលព័ត៌មានលម្អិត</span>
       </Link>
       <div className="product-info">

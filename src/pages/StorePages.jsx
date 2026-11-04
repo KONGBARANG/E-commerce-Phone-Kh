@@ -4,6 +4,7 @@ import ProductCard from '../components/ProductCard';
 import CartIcon from '../components/CartIcon';
 import { useShop } from '../context/useShop';
 import { fetchOrder, validateCoupon } from '../services/api';
+import { getProductImageUrl } from '../utils/productImage';
 
 const money = (amount) => `$${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -174,9 +175,9 @@ function ProductDetails({ product, addToCart }) {
       <div className="breadcrumbs"><Link to="/">ទំព័រដើម</Link><span>/</span><Link to="/products">ផលិតផល</Link><span>/</span>{product.name}</div>
       <div className="product-details">
         <div className="detail-gallery">
-          <div className="detail-image" data-image-fit={product.imageFit || 'contain'} data-image-background={product.imageBackground || 'light'}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={images[selectedImage] || product.image} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} /></div>
+          <div className="detail-image" data-image-fit={product.imageFit || 'contain'} data-image-background={product.imageBackground || 'light'}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={getProductImageUrl(images[selectedImage] || product.image, 1800)} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} /></div>
           {images.length > 1 && <div className="detail-thumbnails" aria-label="រូបភាពផលិតផល">
-            {images.map((image, index) => <button className={selectedImage === index ? 'active' : ''} type="button" onClick={() => setSelectedImage(index)} aria-label={`មើលរូបភាព ${index + 1}`} aria-pressed={selectedImage === index} key={`${image}-${index}`}><img src={image} alt="" /></button>)}
+            {images.map((image, index) => <button className={selectedImage === index ? 'active' : ''} type="button" onClick={() => setSelectedImage(index)} aria-label={`មើលរូបភាព ${index + 1}`} aria-pressed={selectedImage === index} key={`${image}-${index}`}><img src={getProductImageUrl(image, 400)} alt="" /></button>)}
           </div>}
         </div>
         <div className="detail-copy"><span className="eyebrow">{product.brand} · {product.category}</span><h1>{product.name}</h1>{product.sku && <p className="product-sku">SKU: {product.sku}</p>}<div className="detail-rating">★★★★★ <span>{product.rating || 4.8} · មានការវាយតម្លៃពីអតិថិជន</span></div>
