@@ -375,6 +375,7 @@ const translations = {
   'គ្រឿង': 'units',
   'មិនទាន់មានផលិតផលក្នុងប្រភេទនេះទេ។ ចុច “បន្ថែម” ដើម្បីបញ្ចូលផលិតផលថ្មី។': 'There are no products in this category yet. Click “Add” to create one.',
   'ការកុម្ម៉ង់ទាំងអស់': 'All orders',
+  'ទំនិញដែលបានបញ្ជាទិញ': 'Items ordered',
   'ផ្ទៀងផ្ទាត់បង្កាន់ដៃ KHQR មុនទទួលការទូទាត់ និងរៀបចំទំនិញ។ សងប្រាក់ត្រូវរង់ចាំ User បញ្ជាក់ការទទួល។': 'Verify KHQR receipts before confirming payment and preparing orders. Refunds require customer confirmation.',
   'វិធីបង់/បង្កាន់ដៃ': 'Payment / receipt',
   'ស្ថានភាពកុម្ម៉ង់': 'Order status',

@@ -409,11 +409,12 @@ function AdminPage() {
       {orders.length ? (
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/បង្កាន់ដៃ</th><th>ស្ថានភាពកុម្ម៉ង់</th><th>សកម្មភាព</th></tr></thead>
+            <thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទំនិញដែលបានបញ្ជាទិញ</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/បង្កាន់ដៃ</th><th>ស្ថានភាពកុម្ម៉ង់</th><th>សកម្មភាព</th></tr></thead>
             <tbody>{orders.map((order) => (
               <tr key={order._id}>
                 <td><b>{order.orderNumber}</b></td>
-                <td><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small><small>{(order.items || []).map((item) => `${item.name}${item.color ? ` · ពណ៌ ${item.color}` : ''} × ${item.quantity}`).join(', ')}</small></td>
+                <td className="admin-order-customer"><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small></td>
+                <td><div className="admin-order-items">{(order.items || []).map((item, index) => <div className="admin-order-item" key={`${item.product || item.name}-${index}`}>{item.image && <img src={item.image} alt="" loading="lazy" />}<div className="admin-order-item-info"><b>{item.name}</b>{(item.storage || item.color) && <small>{[item.storage, item.color && `ពណ៌ ${item.color}`].filter(Boolean).join(' · ')}</small>}</div><span className="admin-order-item-quantity">× {item.quantity}</span></div>)}</div></td>
                 <td>{order.phone}</td>
                 <td>${order.total}</td>
                 <td>
