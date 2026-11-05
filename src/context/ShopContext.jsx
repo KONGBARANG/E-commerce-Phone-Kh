@@ -2,15 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StoreContext } from './StoreContext';
 import {
   addCartItem,
+  cancelMyOrder as submitOrderCancellation,
+  confirmMyRefundReceived,
+  confirmMyOrderReceived,
   createOrder as submitOrder,
+  deleteAdminOrder as removeAdminOrder,
   deleteCartItem,
   fetchAdminOrders,
+  fetchAdminContactMessages,
   fetchAdminSummary,
   fetchAdminUsers,
   fetchCart,
   fetchCurrentUser,
   fetchMyOrders,
   fetchProducts,
+  markAdminRefundSent,
+  markAdminContactMessageRead,
+  deleteAdminContactMessage,
+  replyToAdminContactMessage,
   updateOrderPaymentStatus,
   updateUserProfile,
   loginAccount,
@@ -26,6 +35,7 @@ export function ShopProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [user, setUser] = useState(null);
   const [adminUsers, setAdminUsers] = useState([]);
+  const [adminContactMessages, setAdminContactMessages] = useState([]);
   const [adminSummary, setAdminSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState('');
@@ -164,20 +174,65 @@ export function ShopProvider({ children }) {
 
   const placeOrder = useCallback(async (details) => {
     const order = await submitOrder(details);
-    await Promise.all([refreshCart(), refreshProducts(), refreshOrders()]);
+    const profileRequest = localStorage.getItem('phonekh-auth-token') ? fetchCurrentUser() : Promise.resolve(null);
+    const [, , , profile] = await Promise.all([
+      refreshCart(),
+      refreshProducts(),
+      refreshOrders(),
+      profileRequest,
+    ]);
+    if (profile) setUser(profile.user);
     return order;
   }, [refreshCart, refreshProducts, refreshOrders]);
 
+  const cancelOrder = useCallback(async (orderNumber, refundQr = '') => {
+    const result = await submitOrderCancellation(orderNumber, refundQr);
+    const [, , profile] = await Promise.all([refreshOrders(), refreshProducts(), fetchCurrentUser()]);
+    setUser(profile.user);
+    return result;
+  }, [refreshOrders, refreshProducts]);
+
+  const confirmRefundReceived = useCallback(async (orderNumber) => {
+    const result = await confirmMyRefundReceived(orderNumber);
+    await refreshOrders();
+    return result;
+  }, [refreshOrders]);
+
+  const confirmOrderReceived = useCallback(async (orderNumber) => {
+    const result = await confirmMyOrderReceived(orderNumber);
+    await refreshOrders();
+    return result;
+  }, [refreshOrders]);
+
   const refreshAdmin = useCallback(async () => {
-    const [summary, adminOrderList, users] = await Promise.all([
+    const [summary, adminOrderList, users, contactMessages] = await Promise.all([
       fetchAdminSummary(),
       fetchAdminOrders(),
       fetchAdminUsers(),
+      fetchAdminContactMessages(),
     ]);
     setAdminSummary(summary);
     setOrders(adminOrderList);
     setAdminUsers(users);
-    return { summary, orders: adminOrderList, users };
+    setAdminContactMessages(contactMessages);
+    return { summary, orders: adminOrderList, users, contactMessages };
+  }, []);
+
+  const markContactMessageRead = useCallback(async (id) => {
+    const updated = await markAdminContactMessageRead(id);
+    setAdminContactMessages((current) => current.map((entry) => entry._id === updated._id ? updated : entry));
+    return updated;
+  }, []);
+
+  const replyToContactMessage = useCallback(async (id, body) => {
+    const updated = await replyToAdminContactMessage(id, body);
+    setAdminContactMessages((current) => current.map((entry) => entry._id === updated._id ? updated : entry));
+    return updated;
+  }, []);
+
+  const deleteContactMessage = useCallback(async (id) => {
+    await deleteAdminContactMessage(id);
+    setAdminContactMessages((current) => current.filter((entry) => entry._id !== id));
   }, []);
 
   const setOrderStatus = useCallback(async (id, status) => {
@@ -192,19 +247,31 @@ export function ShopProvider({ children }) {
     return order;
   }, []);
 
+  const deleteOrder = useCallback(async (orderNumber) => {
+    await removeAdminOrder(orderNumber);
+    setOrders((current) => current.filter((entry) => entry.orderNumber !== orderNumber));
+    await refreshProducts();
+  }, [refreshProducts]);
+
+  const markRefundSent = useCallback(async (orderNumber) => {
+    const order = await markAdminRefundSent(orderNumber);
+    setOrders((current) => current.map((entry) => entry._id === order._id ? order : entry));
+    return order;
+  }, []);
+
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
   const cartTotal = cart.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
   const value = useMemo(() => ({
     products, setProducts, refreshProducts,
     cart, setCart, addToCart, updateQuantity, removeFromCart, refreshCart, cartCount, cartTotal,
-    orders, setOrders, refreshOrders, placeOrder,
+    orders, setOrders, refreshOrders, placeOrder, cancelOrder, confirmRefundReceived, confirmOrderReceived,
     user, setUser, signIn, signUp, signOut, saveUserProfile,
-    adminUsers, adminSummary, refreshAdmin, setOrderStatus, setPaymentStatus,
+    adminUsers, adminSummary, adminContactMessages, refreshAdmin, markContactMessageRead, replyToContactMessage, deleteContactMessage, setOrderStatus, setPaymentStatus, deleteOrder, markRefundSent,
     loading, apiError, setApiError,
   }), [
     products, refreshProducts, cart, addToCart, updateQuantity, removeFromCart, refreshCart,
-    cartCount, cartTotal, orders, refreshOrders, placeOrder, user, signIn, signUp, signOut, saveUserProfile,
-    adminUsers, adminSummary, refreshAdmin, setOrderStatus, setPaymentStatus, loading, apiError,
+    cartCount, cartTotal, orders, refreshOrders, placeOrder, cancelOrder, confirmRefundReceived, confirmOrderReceived, user, signIn, signUp, signOut, saveUserProfile,
+    adminUsers, adminSummary, adminContactMessages, refreshAdmin, markContactMessageRead, replyToContactMessage, deleteContactMessage, setOrderStatus, setPaymentStatus, deleteOrder, markRefundSent, loading, apiError,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

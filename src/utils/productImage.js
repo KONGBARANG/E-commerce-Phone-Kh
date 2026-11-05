@@ -3,8 +3,12 @@ export function getProductImageUrl(imageUrl, width) {
 
   try {
     const url = new URL(imageUrl);
-    url.searchParams.set('w', String(width));
-    url.searchParams.set('q', '90');
+    const pixelRatio = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    url.searchParams.set('w', String(Math.ceil(Math.min(Number(width) * pixelRatio, 2400))));
+    url.searchParams.delete('h');
+    url.searchParams.set('fit', 'max');
+    url.searchParams.set('auto', 'format');
+    url.searchParams.set('q', '95');
     return url.toString();
   } catch {
     return imageUrl;

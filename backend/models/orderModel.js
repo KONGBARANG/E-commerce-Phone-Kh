@@ -14,6 +14,8 @@ const orderSchema = new mongoose.Schema(
     paymentProvider: { type: String, enum: ['', 'ABA', 'ACLEDA'], default: '' },
     paymentReceipt: { type: String, default: '', select: false, maxlength: 5600000 },
     paymentReceiptUploaded: { type: Boolean, default: false },
+    refundQr: { type: String, default: '', select: false, maxlength: 5600000 },
+    refundStatus: { type: String, enum: ['NotRequired', 'Requested', 'Sent', 'Completed', 'Received'], default: 'NotRequired' },
     paymentStatus: { type: String, enum: ['Unpaid', 'Paid'], default: 'Unpaid' },
     items: [
       {
@@ -34,7 +36,7 @@ const orderSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['Pending', 'Processing', 'Completed', 'Cancelled'],
+      enum: ['Pending', 'Processing', 'Completed', 'Received', 'Cancelled'],
       default: 'Pending',
     },
   },

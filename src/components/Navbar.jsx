@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 import CartIcon from './CartIcon';
+import { TranslateTree } from '../context/LanguageProvider';
+import { useLanguage } from '../context/useLanguage';
 
 function Navbar({ theme, themeMode, setThemeMode }) {
   const { cartCount, user } = useShop();
+  const { language, setLanguage } = useLanguage();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -14,7 +17,7 @@ function Navbar({ theme, themeMode, setThemeMode }) {
   };
 
   return (
-    <>
+    <TranslateTree><>
       <div className="topline">ដឹកជញ្ជូនឥតគិតថ្លៃ សម្រាប់ការកុម្ម៉ង់លើស $300 <span>•</span> សេវាបម្រើ 7 ថ្ងៃក្នុងមួយសប្ដាហ៍</div>
       <header className="site-header">
         <Link className="brand" to="/" aria-label="PHONE KH homepage">
@@ -42,6 +45,19 @@ function Navbar({ theme, themeMode, setThemeMode }) {
           )}
         </form>
         <div className="header-actions">
+          <details className="theme-picker language-picker">
+            <summary aria-label="ប្តូរភាសា" title="ប្តូរភាសា">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>
+            </summary>
+            <div className="theme-menu language-menu" role="group" aria-label="ជ្រើសរើសភាសា">
+              <button type="button" className={language === 'km' ? 'active' : ''} aria-pressed={language === 'km'} onClick={(event) => { setLanguage('km'); event.currentTarget.closest('details')?.removeAttribute('open'); }}>
+                <span>ខ្មែរ</span>{language === 'km' && <b aria-hidden="true">✓</b>}
+              </button>
+              <button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={(event) => { setLanguage('en'); event.currentTarget.closest('details')?.removeAttribute('open'); }}>
+                <span>English</span>{language === 'en' && <b aria-hidden="true">✓</b>}
+              </button>
+            </div>
+          </details>
           <details className="theme-picker">
             <summary aria-label="កំណត់របៀបបង្ហាញ" title="កំណត់របៀបភ្លឺ ឬងងឹត">
               {themeMode === 'system' ? (
@@ -86,7 +102,7 @@ function Navbar({ theme, themeMode, setThemeMode }) {
           </Link>
         </div>
       </header>
-    </>
+    </></TranslateTree>
   );
 }
 

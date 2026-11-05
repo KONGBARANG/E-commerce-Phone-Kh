@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { useShop } from '../context/useShop';
+import { getProductImageUrl } from '../utils/productImage';
+import { TranslateTree } from '../context/LanguageProvider';
 
 function HomePage() {
   const { products, addToCart, apiError, loading } = useShop();
@@ -20,7 +22,7 @@ function HomePage() {
   }, [phones.length]);
 
   return (
-    <main>
+    <TranslateTree><main>
       <section className="hero-wrap">
         <div className="hero-copy">
           <div className="eyebrow"><span /> សូមស្វាគមន៍មកកាន់ PHONE KH</div>
@@ -32,7 +34,7 @@ function HomePage() {
         <div className="hero-art">
           <div className="hero-orbit" />
           {featuredPhone && <div className="hero-product-frame" key={featuredPhone._id}>
-            <img src={featuredPhone.image} alt={featuredPhone.name} />
+            <img src={getProductImageUrl(featuredPhone.image, 1400)} alt={featuredPhone.name} />
           </div>}
           {featuredPhone && <div className="hero-product-caption">
             <span>{featuredPhone.brand || 'ស្មាតហ្វូន'}</span>
@@ -57,7 +59,7 @@ function HomePage() {
           <div className="phone-carousel-track">
             {[false, true].map((duplicate) => <div className="phone-carousel-group" aria-hidden={duplicate || undefined} key={duplicate ? 'duplicate' : 'products'}>
               {phones.map((product) => <Link className="phone-carousel-card" to={`/products/${product._id}`} tabIndex={duplicate ? -1 : undefined} key={`${duplicate ? 'duplicate-' : ''}${product._id}`}>
-                <div className="phone-carousel-image"><img src={product.image} alt={duplicate ? '' : product.name} loading="lazy" /></div>
+                <div className="phone-carousel-image"><img src={getProductImageUrl(product.image, 700)} alt={duplicate ? '' : product.name} loading="lazy" /></div>
                 <div className="phone-carousel-info"><span>{product.brand || 'ទូរស័ព្ទ'}</span><h3>{product.name}</h3><p>{[product.storage, product.ram && `RAM ${product.ram}`].filter(Boolean).join(' · ') || 'មើលលម្អិត'}</p><strong>${Number(product.price || 0).toLocaleString()}</strong></div>
               </Link>)}
             </div>)}
@@ -76,7 +78,7 @@ function HomePage() {
       </section>
 
       <section className="promo-banner content-wrap"><div><span>PHONE KH MEMBER</span><h2>ទទួលបានបទពិសោធន៍<br />ទិញទំនិញកាន់តែប្រសើរ</h2><p>ចូលរួមជាមួយយើង ដើម្បីទទួលបានព័ត៌មានថ្មីៗ និងការផ្ដល់ជូនពិសេស។</p><Link className="button-light" to="/register">បង្កើតគណនីឥឡូវនេះ →</Link></div><div className="promo-art">PHONE<br /><strong>KH</strong></div></section>
-    </main>
+    </main></TranslateTree>
   );
 }
 

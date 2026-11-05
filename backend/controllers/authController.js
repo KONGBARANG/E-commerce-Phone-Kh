@@ -6,15 +6,28 @@ const { createPassword, createSession, verifyPassword } = require('../utils/auth
 const maxProfileImageBytes = 1024 * 1024;
 const profileImagePattern = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
 
-const publicUser = (user) => ({
-  id: user._id,
-  name: user.name,
-  email: user.email,
-  phone: user.phone,
-  role: user.role,
-  profileImage: user.profileImage || '',
-  welcomeCouponCode: user.welcomeCouponCode || '',
-});
+const publicUser = async (user) => {
+  const welcomeCoupon = user.welcomeCouponCode
+    ? await Coupon.findOne({
+      code: user.welcomeCouponCode,
+      owner: user._id,
+      active: true,
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+    }).select('maxUses usedCount').lean()
+    : null;
+  const welcomeCouponAvailable = welcomeCoupon
+    && (welcomeCoupon.maxUses == null || welcomeCoupon.usedCount < welcomeCoupon.maxUses);
+
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    profileImage: user.profileImage || '',
+    welcomeCouponCode: welcomeCouponAvailable ? user.welcomeCouponCode : '',
+  };
+};
 
 const register = async (req, res) => {
   const { name, email, phone = '', password } = req.body;
@@ -45,7 +58,7 @@ const register = async (req, res) => {
       active: true,
     });
     const token = await createSession(user);
-    res.status(201).json({ token, user: publicUser(user) });
+    res.status(201).json({ token, user: await publicUser(user) });
   } catch (error) {
     if (user) {
       await Promise.all([
@@ -69,11 +82,11 @@ const login = async (req, res) => {
     return res.status(401).json({ message: 'Email or password is incorrect.' });
   }
   const token = await createSession(user);
-  res.json({ token, user: publicUser(user) });
+  res.json({ token, user: await publicUser(user) });
 };
 
 const getMe = async (req, res) => {
-  res.json({ user: publicUser(req.user) });
+  res.json({ user: await publicUser(req.user) });
 };
 
 const updateProfile = async (req, res) => {
@@ -89,7 +102,7 @@ const updateProfile = async (req, res) => {
   }
   req.user.profileImage = profileImage;
   await req.user.save();
-  res.json({ user: publicUser(req.user) });
+  res.json({ user: await publicUser(req.user) });
 };
 
 const logout = async (req, res) => {
