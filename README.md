@@ -1,6 +1,6 @@
 # PHONE KH
 
-PHONE KH is a Khmer-language phone and accessories storefront backed by the existing Express and MongoDB service.
+PHONE KH is a bilingual Khmer and English phone and accessories storefront backed by the existing Express and MongoDB service.
 
 ## Configure MongoDB and the first administrator
 
@@ -31,6 +31,10 @@ npm run dev
 
 The frontend calls `http://localhost:5000/api` by default. Set `VITE_API_URL` if the API is hosted elsewhere.
 
+## Interface language
+
+The storefront and administrator dashboard support Khmer and English. Use the language selector in the header; the selected language is saved in the browser and restored on the next visit. Khmer is used by default.
+
 ## Add the 50-phone starter catalog
 
 After configuring MongoDB, run the following from the `backend/` directory:
@@ -45,9 +49,11 @@ This inserts 50 smartphone listings with unique SKUs and a different Unsplash ph
 
 Products, registered users, password hashes, sessions, guest/account carts, coupons, and orders are stored in MongoDB. Each signed-in account has its own persistent cart; registering a new account starts with an empty cart, and signing out does not delete the account's cart. Guest carts remain separate and expire after 30 days. Orders are linked to the signed-in user when available and remain in that user's order history after checkout.
 
-The administrator dashboard refreshes orders every 15 seconds while open and shows notices for new orders and newly recorded payments. KHQR/COD are currently recorded as payment methods only; payment is not verified automatically. An administrator must verify payment outside the app and mark it as paid in the order dashboard. Revenue totals include only orders marked paid.
+The administrator dashboard refreshes orders and customer contact messages every 15 seconds while open and shows notices for new orders, newly recorded payments, and new customer messages. Signed-in customers can send contact requests and continue the conversation from their account page. Administrators can reply from the customer messages page; both sides can read and respond in the same thread. Contact-form submissions are saved in MongoDB and can be reviewed, replied to, marked as read, or deleted by administrators. KHQR/COD are currently recorded as payment methods only; payment is not verified automatically. An administrator must verify payment outside the app and mark it as paid in the order dashboard. Revenue totals include only orders marked paid.
 
-The browser stores only opaque authentication and cart-session tokens; it no longer treats browser storage as the source of product, cart, profile, or order data. Data previously created only in browser storage by the demo version is not automatically imported into MongoDB. Passwords are hashed with Node's `scrypt`. Only authenticated administrators can create, edit, and delete products, update order status, view users, and change user roles.
+Signed-in customers can cancel pending or processing orders from their account. Cancelling a KHQR order requires an ABA/ACLEDA refund QR image; administrators can view it and mark the refund as sent after transferring funds manually, then the customer confirms receipt from their account. Customers can cancel COD orders without a refund QR. Administrators can delete COD orders only; KHQR orders must use the customer cancellation and refund flow. Cancellation restores reserved product stock and coupon usage. For KHQR purchases, the administrator must verify the uploaded receipt and mark the payment as received, then separately move the order from pending to processing. Once the goods arrive at the pickup location, the administrator marks the order completed; the customer confirms receipt to finish the order.
+
+The browser stores only opaque authentication and cart-session tokens; it no longer treats browser storage as the source of product, cart, profile, or order data. Data previously created only in browser storage by the demo version is not automatically imported into MongoDB. Passwords are hashed with Node's `scrypt`. Only authenticated administrators can create, edit, and delete products, update order status, view users, change user roles, and manage contact messages. Contact submissions and replies require an authenticated account and are only visible to the submitting customer and administrators.
 
 The KHQR/COD choices are recorded with the order; actual payment processing is not connected yet.
 

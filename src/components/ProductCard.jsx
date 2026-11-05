@@ -1,12 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { getProductImageUrl } from '../utils/productImage';
+import { TranslateTree } from '../context/LanguageProvider';
 
 function ProductCard({ product, addToCart }) {
   const navigate = useNavigate();
   const outOfStock = Number(product.stock || 0) <= 0;
 
   return (
-    <article className="product-card">
+    <TranslateTree><article className="product-card">
       <Link
         className="product-image"
         to={`/products/${product._id}`}
@@ -32,7 +33,7 @@ function ProductCard({ product, addToCart }) {
           {outOfStock ? 'អស់ស្តុក' : product.colors?.length ? 'ជ្រើសរើសពណ៌' : '＋ បន្ថែមទៅកន្ត្រក'}
         </button>
       </div>
-    </article>
+    </article></TranslateTree>
   );
 }
 

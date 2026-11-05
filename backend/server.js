@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const couponRoutes = require('./routes/couponRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 const seedProducts = require('./data/seedProducts');
 const { seedAdmin } = require('./controllers/authController');
 
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.get('/', (_req, res) => res.send('PHONE KH API is running...'));
 app.use('/api', (_req, res) => res.status(404).json({ message: 'API route not found.' }));

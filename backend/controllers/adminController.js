@@ -3,7 +3,7 @@ const { publicUser } = require('./authController');
 
 const getUsers = async (_req, res) => {
   const users = await User.find({}).select('-profileImage').sort({ createdAt: -1 }).lean();
-  res.json(users.map((user) => publicUser(user)));
+  res.json(await Promise.all(users.map((user) => publicUser(user))));
 };
 
 const updateUserRole = async (req, res) => {
@@ -15,7 +15,7 @@ const updateUserRole = async (req, res) => {
   }
   const user = await User.findByIdAndUpdate(req.params.id, { role: req.body.role }, { new: true, runValidators: true });
   if (!user) return res.status(404).json({ message: 'User not found.' });
-  res.json(publicUser(user));
+  res.json(await publicUser(user));
 };
 
 module.exports = { getUsers, updateUserRole };

@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import AppRoutes from './routes/AppRoutes';
 import { Link, useLocation } from 'react-router-dom';
 import { useShop } from './context/useShop';
+import { LanguageProvider, TranslateTree } from './context/LanguageProvider';
 import './App.css';
 
 function AppLayout() {
@@ -32,9 +33,9 @@ function AppLayout() {
   return (
     <div className="app-container" data-theme={theme}>
       <Navbar theme={theme} themeMode={themeMode} setThemeMode={setThemeMode} />
-      {apiError && <div className="api-alert" role="alert"><span>{apiError}</span><button onClick={() => setApiError('')} aria-label="បិទសារកំហុស">×</button></div>}
+      {apiError && <TranslateTree><div className="api-alert" role="alert"><span>{apiError}</span><button onClick={() => setApiError('')} aria-label="បិទសារកំហុស">×</button></div></TranslateTree>}
       <AppRoutes />
-      <footer className="footer">
+      <TranslateTree><footer className="footer">
         <div className="footer-main">
           <div className="footer-brand"><strong>PHONE<span>KH</span></strong><p>បច្ចេកវិទ្យាទំនើប សម្រាប់ជីវិតប្រចាំថ្ងៃរបស់អ្នក។</p></div>
           <div><b>សេវាកម្មអតិថិជន</b><Link to="/about">អំពី PHONE KH</Link><Link to="/contact">ទាក់ទងមកយើង</Link></div>
@@ -42,13 +43,13 @@ function AppLayout() {
           <div><b>ទំនាក់ទំនង</b><span>ភ្នំពេញ, កម្ពុជា</span><span>+855 12 345 678</span><span>hello@phonekh.com</span></div>
         </div>
         <div className="footer-bottom">© 2026 PHONE KH. រក្សាសិទ្ធិគ្រប់យ៉ាង។ <span>ការទូទាត់មានសុវត្ថិភាព · KHQR · COD</span></div>
-      </footer>
+      </footer></TranslateTree>
     </div>
   );
 }
 
 function App() {
-  return <ShopProvider><AppLayout /></ShopProvider>;
+  return <ShopProvider><LanguageProvider><AppLayout /></LanguageProvider></ShopProvider>;
 }
 
 export default App;

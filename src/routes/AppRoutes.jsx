@@ -12,6 +12,7 @@ import {
   ProductDetailsPage,
   ProductsPage,
 } from '../pages/StorePages';
+import { TranslateTree } from '../context/LanguageProvider';
 
 function AppRoutes() {
   return (
@@ -31,7 +32,7 @@ function AppRoutes() {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/admin/*" element={<AdminPage />} />
-      <Route path="*" element={<main className="not-found"><span>404</span><h1>រកមិនឃើញទំព័រនេះទេ</h1><Link className="button-primary" to="/">ត្រឡប់ទៅទំព័រដើម</Link></main>} />
+      <Route path="*" element={<TranslateTree><main className="not-found"><span>404</span><h1>រកមិនឃើញទំព័រនេះទេ</h1><Link className="button-primary" to="/">ត្រឡប់ទៅទំព័រដើម</Link></main></TranslateTree>} />
     </Routes>
   );
 }

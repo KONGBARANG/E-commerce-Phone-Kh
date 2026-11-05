@@ -96,6 +96,17 @@ export async function loginAccount(credentials) {
 
 export const fetchCurrentUser = () => request('/auth/me', { auth: true });
 export const updateUserProfile = (profile) => request('/auth/profile', { method: 'PATCH', body: profile, auth: true });
+export const submitContactMessage = (details) => request('/contact', { method: 'POST', body: details, auth: true });
+export const fetchMyContactMessages = () => request('/contact/mine', { auth: true });
+export const replyToMyContactMessage = (id, body) =>
+  request(`/contact/mine/${encodeURIComponent(id)}/reply`, { method: 'POST', body: { body }, auth: true });
+export const fetchAdminContactMessages = () => request('/contact/admin', { auth: true });
+export const markAdminContactMessageRead = (id) =>
+  request(`/contact/admin/${encodeURIComponent(id)}/read`, { method: 'PATCH', body: {}, auth: true });
+export const replyToAdminContactMessage = (id, body) =>
+  request(`/contact/admin/${encodeURIComponent(id)}/reply`, { method: 'POST', body: { body }, auth: true });
+export const deleteAdminContactMessage = (id) =>
+  request(`/contact/admin/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
 
 export async function logoutAccount() {
   try {
@@ -107,6 +118,12 @@ export async function logoutAccount() {
 
 export const fetchMyOrders = () => request('/orders/mine', { auth: true });
 export const fetchOrder = (orderNumber) => request(`/orders/${encodeURIComponent(orderNumber)}`, { auth: true, cart: true });
+export const cancelMyOrder = (orderNumber, refundQr = '') =>
+  request(`/orders/mine/${encodeURIComponent(orderNumber)}/cancel`, { method: 'PATCH', body: { refundQr }, auth: true });
+export const confirmMyRefundReceived = (orderNumber) =>
+  request(`/orders/mine/${encodeURIComponent(orderNumber)}/refund-received`, { method: 'PATCH', body: {}, auth: true });
+export const confirmMyOrderReceived = (orderNumber) =>
+  request(`/orders/mine/${encodeURIComponent(orderNumber)}/received`, { method: 'PATCH', body: {}, auth: true });
 
 export async function createOrder(order) {
   await ensureCartSession();
@@ -119,6 +136,11 @@ export const createProduct = (product) => request('/products', { method: 'POST',
 export const deleteProduct = (id) => request(`/products/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
 export const fetchAdminOrders = () => request('/orders/admin', { auth: true });
 export const fetchAdminPaymentReceipt = (orderNumber) => request(`/orders/admin/${encodeURIComponent(orderNumber)}/payment-receipt`, { auth: true });
+export const fetchAdminRefundQr = (orderNumber) => request(`/orders/admin/${encodeURIComponent(orderNumber)}/refund-qr`, { auth: true });
+export const markAdminRefundSent = (orderNumber) =>
+  request(`/orders/admin/${encodeURIComponent(orderNumber)}/refund`, { method: 'PATCH', body: {}, auth: true });
+export const deleteAdminOrder = (orderNumber) =>
+  request(`/orders/admin/${encodeURIComponent(orderNumber)}`, { method: 'DELETE', auth: true });
 export const fetchAdminUsers = () => request('/orders/admin/users', { auth: true });
 export const fetchAdminSummary = () => request('/orders/admin/summary', { auth: true });
 export const setProduct = (product) => request(`/products/${encodeURIComponent(product._id)}`, { method: 'PATCH', body: product, auth: true });

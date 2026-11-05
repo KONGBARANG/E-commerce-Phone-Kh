@@ -9,6 +9,20 @@ const { hashToken } = require('../utils/auth');
 const maxReceiptBytes = 4 * 1024 * 1024;
 const receiptDataUrlPattern = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
 
+const isValidImage = (image) => {
+  const match = typeof image === 'string' ? receiptDataUrlPattern.exec(image) : null;
+  return Boolean(match && Buffer.from(match[2], 'base64').length <= maxReceiptBytes);
+};
+
+const releaseOrderResources = async (order) => {
+  await Promise.all([
+    ...order.items.map((item) => Product.updateOne({ _id: item.product }, { $inc: { stock: item.quantity } })),
+    ...(order.discountCode
+      ? [Coupon.updateOne({ code: order.discountCode, usedCount: { $gt: 0 } }, { $inc: { usedCount: -1 } })]
+      : []),
+  ]);
+};
+
 const createOrder = async (req, res) => {
   const { customer, email = '', phone, address, note = '', payment, paymentProvider = '', paymentReceipt = '', couponCode = '' } = req.body;
   if (typeof couponCode !== 'string') return res.status(400).json({ message: 'Coupon code must be text.' });
@@ -173,13 +187,91 @@ const getAdminPaymentReceipt = async (req, res) => {
   res.json({ orderNumber: order.orderNumber, paymentReceipt: order.paymentReceipt });
 };
 
+const cancelMyOrder = async (req, res) => {
+  const order = await Order.findOne({ orderNumber: req.params.orderNumber, user: req.user._id });
+  if (!order) return res.status(404).json({ message: 'Order not found.' });
+  if (!['Pending', 'Processing'].includes(order.status)) {
+    return res.status(409).json({ message: 'Only pending or processing orders can be cancelled.' });
+  }
+  if (order.payment === 'KHQR' && !isValidImage(req.body.refundQr)) {
+    return res.status(400).json({ message: 'Upload a valid ABA/ACLEDA refund QR image no larger than 4 MB.' });
+  }
+
+  const refundStatus = order.payment === 'KHQR' ? 'Requested' : 'NotRequired';
+  const cancelledOrder = await Order.findOneAndUpdate(
+    { _id: order._id, status: { $in: ['Pending', 'Processing'] } },
+    { $set: { status: 'Cancelled', refundStatus, refundQr: refundStatus === 'Requested' ? req.body.refundQr : '' } },
+    { new: true, runValidators: true }
+  );
+  if (!cancelledOrder) return res.status(409).json({ message: 'This order has already been updated.' });
+  await releaseOrderResources(cancelledOrder);
+  res.json(cancelledOrder);
+};
+
+const deleteAdminOrder = async (req, res) => {
+  const order = await Order.findOne({ orderNumber: req.params.orderNumber });
+  if (!order) return res.status(404).json({ message: 'Order not found.' });
+  if (order.payment !== 'COD') {
+    return res.status(403).json({ message: 'Administrators can delete COD orders only.' });
+  }
+  const deletedOrder = await Order.findOneAndDelete({ _id: order._id, payment: 'COD' });
+  if (!deletedOrder) return res.status(409).json({ message: 'This order has already been updated.' });
+  if (['Pending', 'Processing'].includes(deletedOrder.status)) await releaseOrderResources(deletedOrder);
+  res.json({ message: 'COD order deleted.' });
+};
+
+const getAdminRefundQr = async (req, res) => {
+  const order = await Order.findOne({ orderNumber: req.params.orderNumber })
+    .select('+refundQr orderNumber refundStatus')
+    .lean();
+  if (!order) return res.status(404).json({ message: 'Order not found.' });
+  if (!order.refundQr || order.refundStatus !== 'Requested') {
+    return res.status(404).json({ message: 'This order has no pending refund QR.' });
+  }
+  res.json({ orderNumber: order.orderNumber, refundQr: order.refundQr, refundStatus: order.refundStatus });
+};
+
+const markOrderRefundSent = async (req, res) => {
+  const order = await Order.findOneAndUpdate(
+    { orderNumber: req.params.orderNumber, status: 'Cancelled', refundStatus: 'Requested' },
+    { $set: { refundStatus: 'Sent' } },
+    { new: true, runValidators: true }
+  );
+  if (!order) return res.status(409).json({ message: 'No pending refund was found for this order.' });
+  res.json(order);
+};
+
+const confirmOrderRefundReceived = async (req, res) => {
+  const order = await Order.findOneAndUpdate(
+    { orderNumber: req.params.orderNumber, user: req.user._id, status: 'Cancelled', refundStatus: { $in: ['Sent', 'Completed'] } },
+    { $set: { refundStatus: 'Received' } },
+    { new: true, runValidators: true }
+  );
+  if (!order) return res.status(409).json({ message: 'No sent refund is awaiting confirmation for this order.' });
+  res.json(order);
+};
+
+const confirmOrderReceived = async (req, res) => {
+  const order = await Order.findOneAndUpdate(
+    { orderNumber: req.params.orderNumber, user: req.user._id, status: 'Completed' },
+    { $set: { status: 'Received' } },
+    { new: true, runValidators: true }
+  );
+  if (!order) return res.status(409).json({ message: 'No completed order is awaiting your receipt confirmation.' });
+  res.json(order);
+};
+
 const updateOrderStatus = async (req, res) => {
   const updates = {};
   if (req.body.status !== undefined) {
-    const statuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+    const statuses = ['Pending', 'Processing', 'Completed', 'Received', 'Cancelled'];
     if (!statuses.includes(req.body.status)) return res.status(400).json({ message: 'Unsupported order status.' });
+    if (['Cancelled', 'Received'].includes(req.body.status)) {
+      return res.status(400).json({ message: 'This order status can only be set by the customer confirmation action.' });
+    }
     updates.status = req.body.status;
   }
+  let order;
   if (req.body.paymentStatus !== undefined) {
     if (!['Unpaid', 'Paid'].includes(req.body.paymentStatus)) {
       return res.status(400).json({ message: 'Unsupported payment status.' });
@@ -187,12 +279,34 @@ const updateOrderStatus = async (req, res) => {
     updates.paymentStatus = req.body.paymentStatus;
   }
   if (!Object.keys(updates).length) return res.status(400).json({ message: 'Provide an order or payment status.' });
-  const order = await Order.findOneAndUpdate(
-    { orderNumber: req.params.orderNumber },
+  order = await Order.findOne({ orderNumber: req.params.orderNumber, status: { $ne: 'Cancelled' } });
+  if (!order) return res.status(404).json({ message: 'Order not found or already cancelled.' });
+  if (updates.status === 'Processing' && order.status !== 'Pending') {
+    return res.status(409).json({ message: 'Only pending orders can be moved to processing.' });
+  }
+  if (updates.status === 'Completed' && order.status !== 'Processing') {
+    return res.status(409).json({ message: 'Only processing orders can be marked completed.' });
+  }
+  if (updates.status === 'Pending' && order.status !== 'Pending') {
+    return res.status(409).json({ message: 'Order progress cannot be moved backwards.' });
+  }
+  if (updates.paymentStatus === 'Paid' && order.payment === 'KHQR' && !order.paymentReceiptUploaded) {
+    return res.status(409).json({ message: 'Verify the uploaded KHQR payment receipt before confirming payment.' });
+  }
+  if (updates.paymentStatus === 'Unpaid' && order.status !== 'Pending') {
+    return res.status(409).json({ message: 'Payment cannot be reverted after order preparation has started.' });
+  }
+  const nextPaymentStatus = updates.paymentStatus || order.paymentStatus;
+  const nextOrderStatus = updates.status || order.status;
+  if (order.payment === 'KHQR' && ['Processing', 'Completed'].includes(nextOrderStatus) && nextPaymentStatus !== 'Paid') {
+    return res.status(409).json({ message: 'Confirm the KHQR payment before preparing or completing this order.' });
+  }
+  order = await Order.findOneAndUpdate(
+    { orderNumber: req.params.orderNumber, status: { $ne: 'Cancelled' } },
     { $set: updates },
     { new: true, runValidators: true }
   );
-  if (!order) return res.status(404).json({ message: 'Order not found.' });
+  if (!order) return res.status(404).json({ message: 'Order not found or already cancelled.' });
   res.json(order);
 };
 
@@ -209,9 +323,23 @@ const getAdminSummary = async (_req, res) => {
     sales: orders
       .filter((order) => order.status !== 'Cancelled' && order.paymentStatus === 'Paid')
       .reduce((sum, order) => sum + order.total, 0),
-    completedCount: orders.filter((order) => order.status === 'Completed').length,
+    completedCount: orders.filter((order) => ['Completed', 'Received'].includes(order.status)).length,
     processingCount: orders.filter((order) => order.status === 'Processing').length,
   });
 };
 
-module.exports = { createOrder, getAdminOrders, getAdminPaymentReceipt, getAdminSummary, getMyOrders, getOrderByNumber, updateOrderStatus };
+module.exports = {
+  cancelMyOrder,
+  markOrderRefundSent,
+  confirmOrderRefundReceived,
+  confirmOrderReceived,
+  createOrder,
+  deleteAdminOrder,
+  getAdminOrders,
+  getAdminPaymentReceipt,
+  getAdminRefundQr,
+  getAdminSummary,
+  getMyOrders,
+  getOrderByNumber,
+  updateOrderStatus,
+};
