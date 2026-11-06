@@ -2,6 +2,28 @@
 
 PHONE KH is a bilingual Khmer and English phone and accessories storefront backed by the existing Express and MongoDB service.
 
+## Project structure
+
+```text
+backend/
+  config/        Database and application configuration
+  controllers/   API request handlers
+  data/          Seed data
+  middleware/    Express middleware
+  models/        MongoDB models
+  routes/        API routes
+  scripts/       Maintenance and seed scripts
+  utils/         Backend utilities
+  server.js      API server entry point
+frontend/
+  public/        Static assets
+  src/           React application
+  index.html     Vite entry point
+  vite.config.js Vite configuration
+```
+
+Install and run the backend and frontend separately, as described below.
+
 ## Configure MongoDB and the first administrator
 
 The API reads `backend/.env`. If that file already contains your database connection, keep it and add the administrator settings below. Otherwise, start from [`backend/.env.example`](./backend/.env.example), copy it to `backend/.env`, and set:
@@ -25,6 +47,7 @@ npm run dev
 In another terminal:
 
 ```sh
+cd frontend
 npm install
 npm run dev
 ```
@@ -59,12 +82,14 @@ The KHQR/COD choices are recorded with the order; actual payment processing is n
 
 ## Checks
 
+Run frontend checks from the `frontend/` directory:
+
 ```sh
 npm run build
 npm run lint
 ```
 
-For backend syntax checks:
+Run the backend syntax check from the repository root:
 
 ```sh
 node --check backend/server.js
