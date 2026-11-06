@@ -35,6 +35,7 @@ function AdminPage() {
   } = useShop();
   const { pathname } = useLocation();
   const [productParams, setProductParams] = useSearchParams();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const productCategory = ['Smartphone', 'Chargers', 'Accessories'].includes(productParams.get('category'))
     ? productParams.get('category')
     : 'Smartphone';
@@ -407,8 +408,8 @@ function AdminPage() {
         </div>
       </div>
       {orders.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
+        <div className="admin-table-wrap admin-orders-table-wrap" role="region" aria-label="តារាងការកុម្ម៉ង់" tabIndex={0}>
+          <table className="admin-table admin-orders-table">
             <thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទំនិញដែលបានបញ្ជាទិញ</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/បង្កាន់ដៃ</th><th>ស្ថានភាពកុម្ម៉ង់</th><th>សកម្មភាព</th></tr></thead>
             <tbody>{orders.map((order) => (
               <tr key={order._id}>
@@ -529,7 +530,78 @@ function AdminPage() {
     <h2 className="print-section-title">ប្រតិបត្តិការដែលបានទូទាត់</h2>{paidOrders.length ? <table className="print-table"><thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>កាលបរិច្ឆេទ</th><th>សរុប</th></tr></thead><tbody>{paidOrders.map((order) => <tr key={order._id}><td>{order.orderNumber}</td><td>{order.user?.name || order.customer}</td><td>{formatDate(order.createdAt)}</td><td>{formatMoney(order.total)}</td></tr>)}</tbody></table> : <p className="print-empty">មិនទាន់មានប្រតិបត្តិការបានទូទាត់ទេ។</p>}
   </article> : null;
 
-  return <TranslateTree><main className="admin-shell"><aside className="admin-sidebar"><div className="admin-brand"><span className="brand-mark">P</span><div><b>PHONE KH</b><small>ADMIN PANEL</small></div></div><div className="admin-menu-label">MENU</div><nav className="admin-nav-links" aria-label="រុករកផ្ទាំងគ្រប់គ្រង">{sections.map((section) => <Link className={`admin-nav-link ${active.path === section.path ? 'active' : ''}`} to={section.path} key={section.path}><span>{section.icon === 'cart' ? <CartIcon /> : section.icon === 'user' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg> : section.icon === 'overview' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="5" rx="1" /><rect x="13" y="10" width="8" height="11" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /></svg> : section.icon === 'products' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></svg> : section.icon === 'reports' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10m5 10V4m5 16v-7m5 7V7M2 20h20" /></svg> : section.icon}</span>{section.label}{section.path === '/admin/messages' && unreadContactMessages > 0 && <b className="admin-unread-badge">{unreadContactMessages}</b>}{active.path === section.path && <i />}</Link>)}</nav><div className="admin-sidebar-bottom"><div className="admin-user"><div className="account-avatar">{user?.profileImage ? <img src={user.profileImage} alt="" /> : user?.name?.charAt(0) || 'A'}</div><span><b>{user?.name || 'អ្នកគ្រប់គ្រង'}</b><small>Admin</small></span></div><Link to="/">← ត្រឡប់ទៅហាង</Link></div></aside><section className="admin-main"><header className="admin-topbar"><div><small>PHONE KH / ADMIN</small><h1>{active.label}</h1></div><div className="admin-topbar-actions"><details className="theme-picker language-picker"><summary aria-label="Language" title="Language"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg></summary><div className="theme-menu language-menu" role="group" aria-label="Select language"><button type="button" className={language === 'km' ? 'active' : ''} aria-pressed={language === 'km'} onClick={(event) => { setLanguage('km'); event.currentTarget.closest('details')?.removeAttribute('open'); }}><span>Khmer</span>{language === 'km' && <b aria-hidden="true">&#10003;</b>}</button><button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={(event) => { setLanguage('en'); event.currentTarget.closest('details')?.removeAttribute('open'); }}><span>English</span>{language === 'en' && <b aria-hidden="true">&#10003;</b>}</button></div></details><Link className="admin-view-store" to="/">មើលហាង</Link></div></header><div className="admin-content">{orderNotice && <div className="admin-order-notice" role="status" aria-live="polite"><span>{orderNotice}</span><button type="button" onClick={() => setOrderNotice('')} aria-label="បិទការជូនដំណឹង">×</button></div>}{error && <div className="form-error">{error}</div>}{content}</div><p className="admin-demo-note">ការគ្រប់គ្រង និងទិន្នន័យត្រូវបានរក្សាទុកក្នុង MongoDB។</p></section>{receiptPreview && <div className="receipt-modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setReceiptPreview(null); }}><section className="receipt-modal" role="dialog" aria-modal="true" aria-labelledby="receipt-modal-title"><header><div><h2 id="receipt-modal-title">បង្កាន់ដៃទូទាត់ · {receiptPreview.orderNumber}</h2><p>សូមផ្ទៀងផ្ទាត់ប្រតិបត្តិការធនាគារ មុនសម្គាល់ថាបានបង់។</p></div><button type="button" onClick={() => setReceiptPreview(null)} aria-label="បិទបង្កាន់ដៃ">×</button></header><img src={receiptPreview.paymentReceipt} alt={`បង្កាន់ដៃទូទាត់ ${receiptPreview.orderNumber}`} /></section></div>}{refundPreview && <div className="receipt-modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setRefundPreview(null); }}><section className="receipt-modal" role="dialog" aria-modal="true" aria-labelledby="refund-qr-title"><header><div><h2 id="refund-qr-title">QR ទទួលប្រាក់ត្រឡប់ · {refundPreview.orderNumber}</h2><p>ផ្ទេរប្រាក់ទៅ QR នេះ រួចចុចបញ្ជាក់ថា Admin បានបាញ់ប្រាក់។ User នឹងបញ្ជាក់ការទទួលបន្ទាប់ពីពិនិត្យគណនី។</p></div><button type="button" onClick={() => setRefundPreview(null)} aria-label="បិទ QR">×</button></header><img src={refundPreview.refundQr} alt={`QR ទទួលប្រាក់ត្រឡប់ ${refundPreview.orderNumber}`} /><button className="button-primary cancel-submit-button" type="button" onClick={() => confirmRefund(refundPreview.orderNumber)}>បានបាញ់ប្រាក់រួច · ជូនដំណឹង User</button></section></div>}{printDocument}</main></TranslateTree>;
+  return (
+    <TranslateTree>
+      <main className={`admin-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <aside className="admin-sidebar" id="admin-sidebar">
+          <div className="admin-brand">
+            <span className="brand-mark">P</span>
+            <div className="admin-brand-copy"><b>PHONE KH</b><small>ADMIN PANEL</small></div>
+          </div>
+          <div className="admin-menu-label">MENU</div>
+          <nav className="admin-nav-links" aria-label="រុករកផ្ទាំងគ្រប់គ្រង">
+            {sections.map((section) => (
+              <Link
+                className={`admin-nav-link ${active.path === section.path ? 'active' : ''}`}
+                to={section.path}
+                key={section.path}
+                title={sidebarCollapsed ? section.label : undefined}
+              >
+                <span className="admin-nav-icon">{section.icon === 'cart' ? <CartIcon /> : section.icon === 'user' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg> : section.icon === 'overview' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="5" rx="1" /><rect x="13" y="10" width="8" height="11" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /></svg> : section.icon === 'products' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></svg> : section.icon === 'reports' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10m5 10V4m5 16v-7m5 7V7M2 20h20" /></svg> : section.icon}</span>
+                <span className="admin-nav-text">{section.label}</span>
+                {section.path === '/admin/messages' && unreadContactMessages > 0 && <b className="admin-unread-badge">{unreadContactMessages}</b>}
+                {active.path === section.path && <i />}
+              </Link>
+            ))}
+          </nav>
+          <div className="admin-sidebar-bottom">
+            <div className="admin-user">
+              <div className="account-avatar">{user?.profileImage ? <img src={user.profileImage} alt="" /> : user?.name?.charAt(0) || 'A'}</div>
+              <span className="admin-user-copy"><b>{user?.name || 'អ្នកគ្រប់គ្រង'}</b><small>Admin</small></span>
+            </div>
+            <Link to="/">← ត្រឡប់ទៅហាង</Link>
+          </div>
+        </aside>
+        <section className="admin-main">
+          <header className="admin-topbar">
+            <div className="admin-topbar-heading">
+              <button
+                className="admin-sidebar-toggle"
+                type="button"
+                aria-label={sidebarCollapsed ? 'បើកម៉ឺនុយ' : 'បិទម៉ឺនុយ'}
+                aria-expanded={!sidebarCollapsed}
+                aria-controls="admin-sidebar"
+                title={sidebarCollapsed ? 'បើកម៉ឺនុយ' : 'បិទម៉ឺនុយ'}
+                onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              <div><small>PHONE KH / ADMIN</small><h1>{active.label}</h1></div>
+            </div>
+            <div className="admin-topbar-actions">
+              <details className="theme-picker language-picker">
+                <summary aria-label="Language" title="Language"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg></summary>
+                <div className="theme-menu language-menu" role="group" aria-label="Select language">
+                  <button type="button" className={language === 'km' ? 'active' : ''} aria-pressed={language === 'km'} onClick={(event) => { setLanguage('km'); event.currentTarget.closest('details')?.removeAttribute('open'); }}><span>Khmer</span>{language === 'km' && <b aria-hidden="true">&#10003;</b>}</button>
+                  <button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={(event) => { setLanguage('en'); event.currentTarget.closest('details')?.removeAttribute('open'); }}><span>English</span>{language === 'en' && <b aria-hidden="true">&#10003;</b>}</button>
+                </div>
+              </details>
+              <Link className="admin-view-store" to="/">មើលហាង</Link>
+            </div>
+          </header>
+          <div className="admin-content">
+            {orderNotice && <div className="admin-order-notice" role="status" aria-live="polite"><span>{orderNotice}</span><button onClick={() => setOrderNotice('')} aria-label="បិទការជូនដំណឹង">×</button></div>}
+            {error && <div className="form-error">{error}</div>}
+            {content}
+          </div>
+          <p className="admin-demo-note">ការគ្រប់គ្រង និងទិន្នន័យត្រូវបានរក្សាទុកក្នុង MongoDB។</p>
+        </section>
+        {receiptPreview && <div className="receipt-modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setReceiptPreview(null); }}><section className="receipt-modal" role="dialog" aria-modal="true" aria-labelledby="receipt-modal-title"><header><div><h2 id="receipt-modal-title">បង្កាន់ដៃទូទាត់ · {receiptPreview.orderNumber}</h2><p>សូមផ្ទៀងផ្ទាត់ប្រតិបត្តិការធនាគារ មុនសម្គាល់ថាបានបង់។</p></div><button type="button" onClick={() => setReceiptPreview(null)} aria-label="បិទបង្កាន់ដៃ">×</button></header><img src={receiptPreview.paymentReceipt} alt={`បង្កាន់ដៃទូទាត់ ${receiptPreview.orderNumber}`} /></section></div>}
+        {refundPreview && <div className="receipt-modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setRefundPreview(null); }}><section className="receipt-modal" role="dialog" aria-modal="true" aria-labelledby="refund-qr-title"><header><div><h2 id="refund-qr-title">QR ទទួលប្រាក់ត្រឡប់ · {refundPreview.orderNumber}</h2><p>ផ្ទេរប្រាក់ទៅ QR នេះ រួចចុចបញ្ជាក់ថា Admin បានបាញ់ប្រាក់។ User នឹងបញ្ជាក់ការទទួលបន្ទាប់ពីពិនិត្យគណនី។</p></div><button type="button" onClick={() => setRefundPreview(null)} aria-label="បិទ QR">×</button></header><img src={refundPreview.refundQr} alt={`QR ទទួលប្រាក់ត្រឡប់ ${refundPreview.orderNumber}`} /><button className="button-primary cancel-submit-button" type="button" onClick={() => confirmRefund(refundPreview.orderNumber)}>បានបាញ់ប្រាក់រួច · ជូនដំណឹង User</button></section></div>}
+        {printDocument}
+      </main>
+    </TranslateTree>
+  );
 }
 
 export default AdminPage;

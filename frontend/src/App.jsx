@@ -18,6 +18,11 @@ function AppLayout() {
   const theme = themeMode === 'system' ? systemTheme : themeMode;
 
   useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.body.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
     localStorage.setItem('phonekh-theme', themeMode);
     if (themeMode !== 'system') return undefined;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
