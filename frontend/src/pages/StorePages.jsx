@@ -176,7 +176,7 @@ function ProductDetails({ product, addToCart }) {
       <div className="breadcrumbs"><Link to="/">ទំព័រដើម</Link><span>/</span><Link to="/products">ផលិតផល</Link><span>/</span>{product.name}</div>
       <div className="product-details">
         <div className="detail-gallery">
-          <div className="detail-image" data-image-fit={product.imageFit || 'contain'} data-image-background={product.imageBackground || 'light'}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={getProductImageUrl(images[selectedImage] || product.image, 1800)} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} /></div>
+          <div className="detail-image" data-image-background={product.imageBackground || 'light'}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={getProductImageUrl(images[selectedImage] || product.image, 1800)} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} /></div>
           {images.length > 1 && <div className="detail-thumbnails" aria-label="រូបភាពផលិតផល">
             {images.map((image, index) => <button className={selectedImage === index ? 'active' : ''} type="button" onClick={() => setSelectedImage(index)} aria-label={`មើលរូបភាព ${index + 1}`} aria-pressed={selectedImage === index} key={`${image}-${index}`}><img src={getProductImageUrl(image, 400)} alt="" /></button>)}
           </div>}

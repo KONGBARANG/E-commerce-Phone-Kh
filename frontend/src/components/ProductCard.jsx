@@ -11,7 +11,6 @@ function ProductCard({ product, addToCart }) {
       <Link
         className="product-image"
         to={`/products/${product._id}`}
-        data-image-fit={product.imageFit || 'contain'}
         data-image-background={product.imageBackground || 'light'}
       >
         {product.badge && <span className="product-badge">{product.badge}</span>}

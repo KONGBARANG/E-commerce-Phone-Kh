@@ -351,6 +351,7 @@ const translations = {
   'ចាប់ផ្ដើមស្វែងរក': 'Start exploring',
   'ផលិតផលដែលសាកសមនឹងអ្នក កំពុងរង់ចាំនៅទីនេះ': 'Find the products that fit your needs',
   'ទៅកាន់ហាង': 'Visit the store',
+  'ប្រើ URL រូបដើមដែលបង្ហាញផលិតផលពេញ និងច្បាស់។ រូប Thumbnail ពី Google អាចកាត់ផ្នែកផលិតផលរួចហើយ។': 'Use a direct image URL that shows the complete product clearly. Google thumbnails may already have parts of the product cropped.',
   'ទិដ្ឋភាពទូទៅ': 'Overview',
   'គ្រប់គ្រងផលិតផល': 'Manage products',
   'គ្រប់គ្រងការកុម្ម៉ង់': 'Manage orders',

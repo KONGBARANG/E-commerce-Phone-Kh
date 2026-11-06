@@ -46,7 +46,6 @@ function AdminPage() {
   const [selectedColors, setSelectedColors] = useState([]);
   const [imagePreview, setImagePreview] = useState(defaultProductImage);
   const [galleryPreview, setGalleryPreview] = useState([]);
-  const [imageFitPreview, setImageFitPreview] = useState('contain');
   const [imageBackgroundPreview, setImageBackgroundPreview] = useState('light');
   const [notice, setNotice] = useState('');
   const [orderNotice, setOrderNotice] = useState('');
@@ -162,7 +161,7 @@ function AdminPage() {
       image,
       images,
       colors,
-      imageFit: String(form.get('imageFit')),
+      imageFit: 'contain',
       imageBackground: String(form.get('imageBackground')),
       description: String(form.get('description')).trim(),
       stock: Number(form.get('stock')),
@@ -314,7 +313,6 @@ function AdminPage() {
     setSelectedColors(product.colors || []);
     setImagePreview(product.image || defaultProductImage);
     setGalleryPreview(product.images || []);
-    setImageFitPreview(product.imageFit || 'contain');
     setImageBackgroundPreview(product.imageBackground || 'light');
     setShowForm(true);
   };
@@ -366,16 +364,15 @@ function AdminPage() {
         ))}</div>
         <small>ចុចជ្រើសរើសបានរហូតដល់ 3 ពណ៌។</small>
       </fieldset>
-      <label className="span-two">រូបភាពចម្បង (URL)<input name="image" type="url" defaultValue={editingProduct?.image || defaultProductImage} onChange={(event) => setImagePreview(event.target.value || defaultProductImage)} /></label>
+      <label className="span-two">រូបភាពចម្បង (URL)<input name="image" type="url" defaultValue={editingProduct?.image || defaultProductImage} onChange={(event) => setImagePreview(event.target.value || defaultProductImage)} /><small>ប្រើ URL រូបដើមដែលបង្ហាញផលិតផលពេញ និងច្បាស់។ រូប Thumbnail ពី Google អាចកាត់ផ្នែកផលិតផលរួចហើយ។</small></label>
       <label className="span-two">រូបភាពបន្ថែម (URL មួយក្នុងមួយបន្ទាត់)
         <textarea name="images" rows="3" maxLength="3000" defaultValue={editingProduct?.images?.join('\n') || ''} placeholder={'https://example.com/phone-front.jpg\nhttps://example.com/phone-back.jpg'} onChange={(event) => setGalleryPreview(parseList(event.target.value).slice(0, 3))} />
         <small>បន្ថែមបាន 3 រូបទៀត — សរុបអតិបរមា 4 រូប។</small>
       </label>
-      <label>របៀបបង្ហាញរូបភាព<select name="imageFit" value={imageFitPreview} onChange={(event) => setImageFitPreview(event.target.value)}><option value="contain">បង្ហាញរូបទាំងមូល</option><option value="cover">ពង្រីកបំពេញផ្ទៃ</option></select></label>
       <label>ផ្ទៃខាងក្រោយ<select name="imageBackground" value={imageBackgroundPreview} onChange={(event) => setImageBackgroundPreview(event.target.value)}><option value="light">ភ្លឺ</option><option value="dark">ងងឹត</option></select></label>
       <div className="admin-image-preview span-two">
         <div className="admin-image-preview-gallery">
-          {[imagePreview || defaultProductImage, ...galleryPreview].slice(0, 4).map((image, index) => <div className="admin-image-preview-frame" data-image-fit={imageFitPreview} data-image-background={imageBackgroundPreview} key={`${image}-${index}`}><img src={image} alt={`រូបភាពផលិតផល ${index + 1}`} /></div>)}
+          {[imagePreview || defaultProductImage, ...galleryPreview].slice(0, 4).map((image, index) => <div className="admin-image-preview-frame" data-image-background={imageBackgroundPreview} key={`${image}-${index}`}><img src={image} alt={`រូបភាពផលិតផល ${index + 1}`} /></div>)}
         </div>
         <div><b>មើលរូបភាពជាមុន</b><small>អតិថិជនអាចចុចលើរូបតូចៗ ដើម្បីមើលរូបនីមួយៗ។</small></div>
       </div>
