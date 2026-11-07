@@ -28,7 +28,7 @@ function AboutPage() {
             <span className="about-hero-pill"><i /> អំពី PHONE KH</span>
             <h1>បច្ចេកវិទ្យា សម្រាប់មនុស្សគ្រប់គ្នា</h1>
             <p>ជួយឱ្យការស្វែងរកទូរស័ព្ទ និងគ្រឿងបន្លាស់ដែលសាកសមនឹងអ្នក កាន់តែងាយស្រួល និងមានទំនុកចិត្ត។</p>
-            <Link className="about-hero-link" to="/products">រុករកផលិតផល <span aria-hidden="true">→</span></Link>
+            <Link className="about-hero-link" to="/products">រុករកផលិតផល</Link>
           </div>
           <div className="about-hero-decoration" aria-hidden="true">
             <span className="about-orbit about-orbit-one" />
@@ -43,7 +43,7 @@ function AboutPage() {
             <h2>បច្ចេកវិទ្យាដែលអ្នកអាចទុកចិត្ត</h2>
             <p>PHONE KH ជាហាងលក់ទូរស័ព្ទ និងគ្រឿងបន្លាស់នៅកម្ពុជា។ យើងចង់ធ្វើឱ្យការជ្រើសរើសផលិតផលបច្ចេកវិទ្យាកាន់តែសាមញ្ញ ដោយផ្ដល់ព័ត៌មានច្បាស់លាស់ និងជម្រើសសមស្របតាមតម្រូវការរបស់អ្នក។</p>
             <p>មិនថាអ្នកកំពុងស្វែងរកទូរស័ព្ទថ្មី ឬគ្រឿងបន្លាស់ប្រើប្រាស់ប្រចាំថ្ងៃទេ យើងនៅទីនេះដើម្បីជួយអ្នកស្វែងរកជម្រើសដែលត្រូវចិត្ត។</p>
-            <Link className="button-primary about-story-link" to="/products">រុករកផលិតផលទាំងអស់ <span aria-hidden="true">→</span></Link>
+            <Link className="button-primary about-story-link" to="/products">រុករកផលិតផលទាំងអស់</Link>
           </article>
 
           <aside className="about-promise">
@@ -78,7 +78,7 @@ function AboutPage() {
 
         <section className="content-wrap about-cta">
           <div><span className="eyebrow">ចាប់ផ្ដើមស្វែងរក</span><h2>ផលិតផលដែលសាកសមនឹងអ្នក កំពុងរង់ចាំនៅទីនេះ</h2></div>
-          <Link className="button-primary" to="/products">ទៅកាន់ហាង <span aria-hidden="true">→</span></Link>
+          <Link className="button-primary" to="/products">ទៅកាន់ហាង</Link>
         </section>
       </main>
     </TranslateTree>

@@ -630,8 +630,7 @@ html[data-theme='dark'], body[data-theme='dark'] { background: #080f19; }
 .app-container[data-theme='dark'] .refund-status { color: #f0c77e; background: #302718; }
 .app-container[data-theme='dark'] .refund-status.complete,
 .app-container[data-theme='dark'] .refund-complete-button { color: #8de0b8; background: #17352b; }
-@media (max-width: 760px) {
-  .topline { min-height: 28px; font-size: 9px; }
+@media (max-width: 950px) {
   .site-header { height: auto; min-height: 65px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px 12px; padding: 10px 4%; }
   .brand { min-width: 0; font-size: 16px; }
   .brand-mark { width: 32px; height: 32px; }
@@ -646,6 +645,9 @@ html[data-theme='dark'], body[data-theme='dark'] { background: #080f19; }
   .icon-link:hover { background: #f6f8fb; }
   .header-action-icon { width: 34px; height: 34px; flex-basis: 34px; }
   .header-action-copy { display: none; }
+}
+@media (max-width: 760px) {
+  .topline { min-height: 28px; font-size: 9px; }
   .hero-wrap { min-height: 0; grid-template-columns: 1fr; padding: 40px 6% 20px; }
   .hero-copy h1 { font-size: clamp(35px, 9.5vw, 44px); letter-spacing: -1.5px; }
   .hero-buttons { flex-wrap: wrap; gap: 14px 20px; }

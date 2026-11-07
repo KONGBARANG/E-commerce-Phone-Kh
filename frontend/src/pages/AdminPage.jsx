@@ -248,7 +248,7 @@ function AdminPage() {
 
   if (loading) return <TranslateTree><main className="admin-empty">កំពុងភ្ជាប់ Database...</main></TranslateTree>;
   if (user?.role !== 'admin') {
-    return <TranslateTree><main className="empty-state admin-access"><span>🔒</span><h2>{user ? 'ត្រូវការសិទ្ធិអ្នកគ្រប់គ្រង' : 'ចូលគណនី Admin'}</h2><p>{user ? 'គណនីនេះមិនមានសិទ្ធិចូលប្រើផ្ទាំង Admin ទេ។' : 'សូមចូលដោយប្រើគណនី Admin ដែលបានកំណត់នៅក្នុង backend។'}</p><Link className="button-primary" to="/login?next=/admin">{user ? 'ត្រឡប់ទៅហាង' : 'ចូលគណនី →'}</Link></main></TranslateTree>;
+    return <TranslateTree><main className="empty-state admin-access"><span>🔒</span><h2>{user ? 'ត្រូវការសិទ្ធិអ្នកគ្រប់គ្រង' : 'ចូលគណនី Admin'}</h2><p>{user ? 'គណនីនេះមិនមានសិទ្ធិចូលប្រើផ្ទាំង Admin ទេ។' : 'សូមចូលដោយប្រើគណនី Admin ដែលបានកំណត់នៅក្នុង backend។'}</p><Link className="button-primary" to="/login?next=/admin">{user ? 'ត្រឡប់ទៅហាង' : 'ចូលគណនី'}</Link></main></TranslateTree>;
   };
 
   const renderOverview = () => <><div className="admin-stat-grid">

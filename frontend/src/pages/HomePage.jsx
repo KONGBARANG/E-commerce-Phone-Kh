@@ -28,7 +28,7 @@ function HomePage() {
           <div className="eyebrow"><span /> សូមស្វាគមន៍មកកាន់ PHONE KH</div>
           <h1>បច្ចេកវិទ្យា<br />ដែលអ្នក <em>ស្រឡាញ់</em></h1>
           <p>ស្វែងរកទូរស័ព្ទ និងឧបករណ៍បច្ចេកវិទ្យាថ្មីៗ តម្លៃល្អបំផុត និងសេវាកម្មដែលអ្នកទុកចិត្តបាន។</p>
-          <div className="hero-buttons"><Link className="button-primary" to="/phones">ទិញទំនិញឥឡូវនេះ <span>→</span></Link><Link className="text-link" to="/about">ស្វែងយល់បន្ថែម</Link></div>
+          <div className="hero-buttons"><Link className="button-primary" to="/phones">ទិញទំនិញឥឡូវនេះ</Link><Link className="text-link" to="/about">ស្វែងយល់បន្ថែម</Link></div>
           <div className="hero-stats"><div><strong>2,500<span>+</span></strong><small>អតិថិជនពេញចិត្ត</small></div><div><strong>100<span>%</span></strong><small>ផលិតផលមានគុណភាព</small></div><div><strong>1<span> ឆ្នាំ</span></strong><small>ការធានាផលិតផល</small></div></div>
         </div>
         <div className="hero-art">
@@ -77,7 +77,7 @@ function HomePage() {
         {loading ? <p className="loading-note">កំពុងទាញផលិតផលពី Database...</p> : featured.length ? <div className="products-grid">{featured.map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <p className="loading-note">មិនមានផលិតផលក្នុង Database នៅឡើយទេ។</p>}
       </section>
 
-      <section className="promo-banner content-wrap"><div><span>PHONE KH MEMBER</span><h2>ទទួលបានបទពិសោធន៍<br />ទិញទំនិញកាន់តែប្រសើរ</h2><p>ចូលរួមជាមួយយើង ដើម្បីទទួលបានព័ត៌មានថ្មីៗ និងការផ្ដល់ជូនពិសេស។</p><Link className="button-light" to="/register">បង្កើតគណនីឥឡូវនេះ →</Link></div><div className="promo-art">PHONE<br /><strong>KH</strong></div></section>
+      <section className="promo-banner content-wrap"><div><span>PHONE KH MEMBER</span><h2>ទទួលបានបទពិសោធន៍<br />ទិញទំនិញកាន់តែប្រសើរ</h2><p>ចូលរួមជាមួយយើង ដើម្បីទទួលបានព័ត៌មានថ្មីៗ និងការផ្ដល់ជូនពិសេស។</p><Link className="button-light" to="/register">បង្កើតគណនីឥឡូវនេះ</Link></div><div className="promo-art">PHONE<br /><strong>KH</strong></div></section>
     </main></TranslateTree>
   );
 }

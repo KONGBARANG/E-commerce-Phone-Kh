@@ -40,7 +40,7 @@ function Navbar({ theme, themeMode, setThemeMode }) {
           />
           {query && (
             <div className="search-suggestions">
-              <button type="submit">ស្វែងរក “{query}” →</button>
+              <button type="submit">ស្វែងរក “{query}”</button>
             </div>
           )}
         </form>
