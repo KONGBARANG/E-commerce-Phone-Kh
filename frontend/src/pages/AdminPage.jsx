@@ -409,12 +409,12 @@ function AdminPage() {
             <thead><tr><th>លេខកុម្ម៉ង់</th><th>អតិថិជន</th><th>ទំនិញដែលបានបញ្ជាទិញ</th><th>ទូរស័ព្ទ</th><th>សរុប</th><th>វិធីបង់/បង្កាន់ដៃ</th><th>ស្ថានភាពកុម្ម៉ង់</th><th>សកម្មភាព</th></tr></thead>
             <tbody>{orders.map((order) => (
               <tr key={order._id}>
-                <td><b>{order.orderNumber}</b></td>
-                <td className="admin-order-customer"><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small></td>
-                <td><div className="admin-order-items">{(order.items || []).map((item, index) => <div className="admin-order-item" key={`${item.product || item.name}-${index}`}>{item.image && <img src={item.image} alt="" loading="lazy" />}<div className="admin-order-item-info"><b>{item.name}</b>{(item.storage || item.color) && <small>{[item.storage, item.color && `ពណ៌ ${item.color}`].filter(Boolean).join(' · ')}</small>}</div><span className="admin-order-item-quantity">× {item.quantity}</span></div>)}</div></td>
-                <td>{order.phone}</td>
-                <td>${order.total}</td>
-                <td>
+                <td data-label="លេខកុម្ម៉ង់"><b>{order.orderNumber}</b></td>
+                <td className="admin-order-customer" data-label="អតិថិជន"><b>{order.user?.name || order.customer}</b><small>{order.user?.email || order.email || 'អតិថិជនភ្ញៀវ'}</small></td>
+                <td data-label="ទំនិញដែលបានបញ្ជាទិញ"><div className="admin-order-items">{(order.items || []).map((item, index) => <div className="admin-order-item" key={`${item.product || item.name}-${index}`}>{item.image && <img src={item.image} alt="" loading="lazy" />}<div className="admin-order-item-info"><b>{item.name}</b>{(item.storage || item.color) && <small>{[item.storage, item.color && `ពណ៌ ${item.color}`].filter(Boolean).join(' · ')}</small>}</div><span className="admin-order-item-quantity">× {item.quantity}</span></div>)}</div></td>
+                <td data-label="ទូរស័ព្ទ">{order.phone}</td>
+                <td data-label="សរុប">${order.total}</td>
+                <td data-label="វិធីបង់ / បង្កាន់ដៃ">
                   {order.payment === 'COD' ? 'បង់ពេលទទួល (COD)' : `${order.paymentProvider || 'KHQR'} · KHQR`}
                   <br />
                   {order.payment === 'KHQR' && order.paymentReceiptUploaded && <button className="table-action receipt-view-button" type="button" disabled={loadingReceipt === order.orderNumber} onClick={() => viewPaymentReceipt(order.orderNumber)}>{loadingReceipt === order.orderNumber ? 'កំពុងបើក...' : 'មើលបង្កាន់ដៃ'}</button>}
@@ -426,7 +426,7 @@ function AdminPage() {
                   </select>
                   {order.payment === 'KHQR' && !order.paymentReceiptUploaded && <small className="payment-verification-note">ត្រូវការបង្កាន់ដៃ KHQR មុនផ្ទៀងផ្ទាត់</small>}
                 </td>
-                <td>
+                <td data-label="ស្ថានភាពកុម្ម៉ង់">
                   <select className="status-select" aria-label={`ស្ថានភាពការកុម្ម៉ង់ ${order.orderNumber}`} value={order.status} disabled={['Cancelled', 'Completed', 'Received'].includes(order.status)} onChange={(event) => changeStatus(order.orderNumber, event.target.value)}>
                     <option disabled={order.status !== 'Pending'}>Pending</option>
                     <option disabled={order.status !== 'Pending' || (order.payment === 'KHQR' && order.paymentStatus !== 'Paid')}>Processing</option>
@@ -437,7 +437,7 @@ function AdminPage() {
                   {order.status === 'Completed' && <small className="payment-verification-note">ដល់ទីតាំងហើយ · រង់ចាំ User បញ្ជាក់ទទួល</small>}
                   {order.status === 'Received' && <small className="refund-status complete">User បានបញ្ជាក់ទទួលទំនិញ</small>}
                 </td>
-                <td><div className="admin-order-actions"><button className="table-action admin-print-button" type="button" onClick={() => setPrintRequest({ type: 'receipt', order })}>🖨 វិក្កយបត្រ</button>{order.payment === 'COD' && <button className="table-action" type="button" onClick={() => removeOrder(order.orderNumber)}>លុប COD</button>}</div></td>
+                <td data-label="សកម្មភាព"><div className="admin-order-actions"><button className="table-action admin-print-button" type="button" onClick={() => setPrintRequest({ type: 'receipt', order })}>🖨 វិក្កយបត្រ</button>{order.payment === 'COD' && <button className="table-action" type="button" onClick={() => removeOrder(order.orderNumber)}>លុប COD</button>}</div></td>
               </tr>
             ))}</tbody>
           </table>

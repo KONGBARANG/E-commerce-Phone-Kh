@@ -165,21 +165,34 @@ function ProductDetails({ product, addToCart }) {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [imageAspectRatio, setImageAspectRatio] = useState(1);
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || '');
   const images = [...new Set([product.image, ...(product.images || [])].filter(Boolean))].slice(0, 4);
   const stock = Number(product.stock || 0);
   const outOfStock = stock <= 0;
   const addSelectedToCart = () => outOfStock ? null : addToCart(product, quantity, selectedColor);
 
+  useEffect(() => {
+    if (images.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const intervalId = window.setInterval(() => {
+      setSelectedImage((index) => (index + 1) % images.length);
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [images.length]);
+
   return (
     <TranslateTree><main className="content-wrap details-page">
-      <div className="breadcrumbs"><Link to="/">ទំព័រដើម</Link><span>/</span><Link to="/products">ផលិតផល</Link><span>/</span>{product.name}</div>
+      <nav className="breadcrumbs" aria-label="ទីតាំងបច្ចុប្បន្ន"><Link to="/">ទំព័រដើម</Link><span aria-hidden="true">/</span><Link to="/products">ផលិតផល</Link><span aria-hidden="true">/</span><span className="breadcrumb-current" aria-current="page">{product.name}</span></nav>
       <div className="product-details">
         <div className="detail-gallery">
-          <div className="detail-image" data-image-background={product.imageBackground || 'light'}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={getProductImageUrl(images[selectedImage] || product.image, 1800)} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} /></div>
+          <div className="detail-image" data-image-background={product.imageBackground || 'light'} style={{ aspectRatio: imageAspectRatio }}><span className="product-badge">{product.badge || 'មានក្នុងស្តុក'}</span><img src={getProductImageUrl(images[selectedImage] || product.image, 1800)} alt={`${product.name}${selectedColor ? ` - ${selectedColor}` : ''}`} onLoad={({ currentTarget }) => setImageAspectRatio(Math.min(1.25, Math.max(0.8, currentTarget.naturalWidth / currentTarget.naturalHeight)))} /></div>
           {images.length > 1 && <div className="detail-thumbnails" aria-label="រូបភាពផលិតផល">
             {images.map((image, index) => <button className={selectedImage === index ? 'active' : ''} type="button" onClick={() => setSelectedImage(index)} aria-label={`មើលរូបភាព ${index + 1}`} aria-pressed={selectedImage === index} key={`${image}-${index}`}><img src={getProductImageUrl(image, 400)} alt="" /></button>)}
           </div>}
+          <div className="gallery-assurances">
+            <p><span aria-hidden="true">✓</span> ដឹកជញ្ជូនឥតគិតថ្លៃលើការកុម្ម៉ង់ $300 ឡើងទៅ</p>
+            <p><span aria-hidden="true">✓</span> ធានាផលិតផល 12 ខែ · អាចប្ដូរបានក្នុង 7 ថ្ងៃ</p>
+          </div>
         </div>
         <div className="detail-copy"><span className="eyebrow">{product.brand} · {product.category}</span><h1>{product.name}</h1>{product.sku && <p className="product-sku">SKU: {product.sku}</p>}<div className="detail-rating">★★★★★ <span>{product.rating || 4.8} · មានការវាយតម្លៃពីអតិថិជន</span></div>
           <div className="detail-price">{money(product.price)} {product.oldPrice && <del>{money(product.oldPrice)}</del>}</div>
@@ -188,7 +201,6 @@ function ProductDetails({ product, addToCart }) {
           <div className="spec-grid">{product.category === 'Chargers' ? <div><small>កម្លាំងសាក / លក្ខណៈ</small><b>{product.storage || '—'}</b></div> : <><div><small>អង្គផ្ទុកទិន្នន័យ</small><b>{product.storage || '—'}</b></div><div><small>RAM</small><b>{product.ram || '—'}</b></div></>}<div><small>ស្តុក</small><b>{product.stock > 0 ? `${product.stock} គ្រឿង` : 'ទាក់ទងមកយើង'}</b></div></div>
           <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" disabled={quantity <= 1} onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" disabled={quantity >= stock} onClick={() => setQuantity(Math.min(stock, quantity + 1))}>＋</button></div><button className="button-primary" disabled={outOfStock} onClick={addSelectedToCart}>{outOfStock ? 'អស់ស្តុក' : 'បន្ថែមទៅកន្ត្រក'}</button></div>
           <button className="button-outline full-button" disabled={outOfStock} onClick={async () => { const updated = await addSelectedToCart(); if (updated) navigate('/checkout'); }}>{outOfStock ? 'អស់ស្តុក' : 'ទិញឥឡូវនេះ'}</button>
-          <div className="delivery-note">✓ ដឹកជញ្ជូនឥតគិតថ្លៃលើការកុម្ម៉ង់ $300 ឡើងទៅ<br />✓ ធានាផលិតផល 12 ខែ · អាចប្ដូរបានក្នុង 7 ថ្ងៃ</div>
         </div>
       </div>
     </main></TranslateTree>
