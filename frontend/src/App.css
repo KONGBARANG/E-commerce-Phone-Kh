@@ -135,7 +135,7 @@ html[data-theme='dark'], body[data-theme='dark'] { background: #080f19; }
   .support-chat-widget { right: 16px; bottom: 16px; }
   .support-chat-widget[popover] { inset: auto 16px 16px auto; }
   .support-chat-launcher { width: 52px; height: 52px; }
-  .support-chat-panel { bottom: 64px; width: min(340px, calc(100vw - 24px)); height: min(400px, calc(100dvh - 128px)); }
+  .support-chat-panel { bottom: 64px; width: min(320px, calc(100vw - 24px)); height: min(340px, calc(100dvh - 128px)); }
   .support-chat-messages { padding: 12px; }
   .support-chat-login { gap: 12px; padding: 16px; }
 }
