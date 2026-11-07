@@ -17,6 +17,29 @@ const formatDate = (date) => {
   const parsedDate = new Date(date);
   return Number.isNaN(parsedDate.getTime()) ? '—' : parsedDate.toLocaleString();
 };
+const reconcileAdminNotifications = (storageKey, currentIds, markRead = false) => {
+  const current = [...new Set(currentIds.map(String))];
+  let stored = null;
+  try {
+    stored = JSON.parse(localStorage.getItem(storageKey) || 'null');
+  } catch {
+    stored = null;
+  }
+  if (!stored || !Array.isArray(stored.knownIds) || !Array.isArray(stored.unreadIds)) {
+    const initial = { knownIds: current, unreadIds: [] };
+    localStorage.setItem(storageKey, JSON.stringify(initial));
+    return { newIds: [], unreadIds: [] };
+  }
+  const currentSet = new Set(current);
+  const knownSet = new Set(stored.knownIds.map(String));
+  const unreadSet = new Set(stored.unreadIds.map(String).filter((id) => currentSet.has(id)));
+  const newIds = current.filter((id) => !knownSet.has(id));
+  if (markRead) unreadSet.clear();
+  else newIds.forEach((id) => unreadSet.add(id));
+  const unreadIds = [...unreadSet];
+  localStorage.setItem(storageKey, JSON.stringify({ knownIds: current, unreadIds }));
+  return { newIds: markRead ? [] : newIds, unreadIds };
+};
 
 const sections = [
   { path: '/admin', label: 'ទិដ្ឋភាពទូទៅ', icon: 'overview' },
@@ -49,6 +72,8 @@ function AdminPage() {
   const [imageBackgroundPreview, setImageBackgroundPreview] = useState('light');
   const [notice, setNotice] = useState('');
   const [orderNotice, setOrderNotice] = useState('');
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [newUsersCount, setNewUsersCount] = useState(0);
   const [printRequest, setPrintRequest] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [refundPreview, setRefundPreview] = useState(null);
@@ -58,10 +83,18 @@ function AdminPage() {
   const [replyingToMessage, setReplyingToMessage] = useState('');
   const previousOrders = useRef(null);
   const previousContactMessages = useRef(null);
+  const activeAdminSection = useRef(pathname);
+  const adminIdentity = user?.id || user?._id || 'admin';
+  const orderNotificationsKey = `phonekh-admin-notifications:${adminIdentity}:orders`;
+  const userNotificationsKey = `phonekh-admin-notifications:${adminIdentity}:users`;
   const unreadContactMessages = adminContactMessages.filter((message) => message.status === 'New').length;
   const active = sections.find((section) => section.path === pathname) || sections[0];
   const [error, setError] = useState('');
   const sales = adminSummary?.sales || 0;
+
+  useEffect(() => {
+    activeAdminSection.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     if (!printRequest) return undefined;
@@ -82,18 +115,37 @@ function AdminPage() {
         const [result] = await Promise.all([refreshAdmin(), refreshProducts()]);
         if (!active) return;
         const currentOrders = new Map(result.orders.map((order) => [order._id, order]));
+        const orderNotificationState = reconcileAdminNotifications(
+          orderNotificationsKey,
+          result.orders.map((order) => order._id),
+          activeAdminSection.current === '/admin/orders',
+        );
+        setNewOrdersCount(orderNotificationState.unreadIds.length);
         const notifications = [];
         if (previousOrders.current) {
           for (const order of result.orders) {
             const previous = previousOrders.current.get(order._id);
-            if (!previous) {
-              notifications.push(`ការកុម្ម៉ង់ថ្មីពី ${order.user?.name || order.customer} (${order.orderNumber})`);
-            } else if ((previous.paymentStatus || 'Unpaid') !== 'Paid' && order.paymentStatus === 'Paid') {
+            if (previous && (previous.paymentStatus || 'Unpaid') !== 'Paid' && order.paymentStatus === 'Paid') {
               notifications.push(`បានបញ្ជាក់ការទូទាត់ពី ${order.user?.name || order.customer} (${order.orderNumber})`);
-            } else if (previous.status !== 'Received' && order.status === 'Received') {
+            } else if (previous && previous.status !== 'Received' && order.status === 'Received') {
               notifications.push(`អតិថិជនបានបញ្ជាក់ទទួលទំនិញ (${order.orderNumber})`);
             }
           }
+        }
+        for (const id of orderNotificationState.newIds) {
+          const order = currentOrders.get(id);
+          if (order) notifications.push(`ការកុម្ម៉ង់ថ្មីពី ${order.user?.name || order.customer} (${order.orderNumber})`);
+        }
+        const currentUsers = new Map(result.users.map((account) => [account.id, account]));
+        const userNotificationState = reconcileAdminNotifications(
+          userNotificationsKey,
+          result.users.map((account) => account.id),
+          activeAdminSection.current === '/admin/users',
+        );
+        setNewUsersCount(userNotificationState.unreadIds.length);
+        for (const id of userNotificationState.newIds) {
+          const account = currentUsers.get(id);
+          if (account) notifications.push(`អ្នកប្រើប្រាស់ថ្មី ${account.name} (${account.email})`);
         }
         const currentContactMessages = new Map(result.contactMessages.map((message) => [message._id, message]));
         if (previousContactMessages.current) {
@@ -124,7 +176,7 @@ function AdminPage() {
       active = false;
       window.clearInterval(interval);
     };
-  }, [user, refreshAdmin, refreshProducts]);
+  }, [user, refreshAdmin, refreshProducts, orderNotificationsKey, userNotificationsKey]);
 
   const createProduct = async (event) => {
     event.preventDefault();
@@ -542,9 +594,22 @@ function AdminPage() {
                 to={section.path}
                 key={section.path}
                 title={sidebarCollapsed ? section.label : undefined}
+                onClick={() => {
+                  activeAdminSection.current = section.path;
+                  if (section.path === '/admin/orders') {
+                    reconcileAdminNotifications(orderNotificationsKey, orders.map((order) => order._id), true);
+                    setNewOrdersCount(0);
+                  }
+                  if (section.path === '/admin/users') {
+                    reconcileAdminNotifications(userNotificationsKey, adminUsers.map((account) => account.id), true);
+                    setNewUsersCount(0);
+                  }
+                }}
               >
                 <span className="admin-nav-icon">{section.icon === 'cart' ? <CartIcon /> : section.icon === 'user' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg> : section.icon === 'overview' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="5" rx="1" /><rect x="13" y="10" width="8" height="11" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /></svg> : section.icon === 'products' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></svg> : section.icon === 'reports' ? <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10m5 10V4m5 16v-7m5 7V7M2 20h20" /></svg> : section.icon}</span>
                 <span className="admin-nav-text">{section.label}</span>
+                {section.path === '/admin/orders' && newOrdersCount > 0 && <b className="admin-unread-badge">{newOrdersCount > 99 ? '99+' : newOrdersCount}</b>}
+                {section.path === '/admin/users' && newUsersCount > 0 && <b className="admin-unread-badge">{newUsersCount > 99 ? '99+' : newUsersCount}</b>}
                 {section.path === '/admin/messages' && unreadContactMessages > 0 && <b className="admin-unread-badge">{unreadContactMessages}</b>}
                 {active.path === section.path && <i />}
               </Link>
