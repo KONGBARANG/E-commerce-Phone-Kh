@@ -293,7 +293,6 @@ function AdminPage() {
     setSelectedColors([]);
     setImagePreview(defaultProductImage);
     setGalleryPreview([]);
-    setImageFitPreview('contain');
     setImageBackgroundPreview('light');
     setShowForm(true);
   };
