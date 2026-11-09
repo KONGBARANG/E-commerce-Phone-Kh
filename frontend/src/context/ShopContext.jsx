@@ -47,6 +47,10 @@ export function ShopProvider({ children }) {
   }, []);
 
   const refreshCart = useCallback(async () => {
+    if (!localStorage.getItem('phonekh-auth-token')) {
+      setCart([]);
+      return [];
+    }
     const result = await fetchCart();
     setCart(result);
     return result;
@@ -81,16 +85,17 @@ export function ShopProvider({ children }) {
       }
       const results = await Promise.allSettled([
         productsRequest,
-        fetchCart(),
-        ...(authenticated ? [fetchMyOrders()] : []),
+        ...(authenticated ? [fetchCart(), fetchMyOrders()] : []),
       ]);
       if (!active) return;
       if (results[0].status === 'fulfilled') setProducts(results[0].value);
       if (results[0].status === 'rejected') setApiError(results[0].reason.message);
-      if (results[1].status === 'fulfilled') setCart(results[1].value);
-      if (results[1].status === 'rejected') setApiError(results[1].reason.message);
-      if (authenticated && results[2].status === 'fulfilled') setOrders(results[2].value);
-      if (authenticated && results[2].status === 'rejected') setApiError(results[2].reason.message);
+      if (authenticated) {
+        if (results[1].status === 'fulfilled') setCart(results[1].value);
+        if (results[1].status === 'rejected') setApiError(results[1].reason.message);
+        if (results[2].status === 'fulfilled') setOrders(results[2].value);
+        if (results[2].status === 'rejected') setApiError(results[2].reason.message);
+      }
       if (active) setLoading(false);
     };
     initialize().catch((error) => {
@@ -104,6 +109,10 @@ export function ShopProvider({ children }) {
   }, []);
 
   const addToCart = useCallback(async (product, quantity = 1, color = '') => {
+    if (!localStorage.getItem('phonekh-auth-token')) {
+      setApiError('សូមចូលគណនី ឬបង្កើតគណនី ដើម្បីបន្ថែមទំនិញទៅកន្ត្រក។');
+      return null;
+    }
     try {
       const result = await addCartItem(product._id, quantity, color);
       setCart(result);
@@ -113,6 +122,14 @@ export function ShopProvider({ children }) {
       setApiError(error.message);
       return null;
     }
+  }, []);
+
+  const queueCartItem = useCallback((product, quantity = 1, color = '') => {
+    sessionStorage.setItem('phonekh-pending-cart-item', JSON.stringify({
+      productId: product._id,
+      quantity,
+      color,
+    }));
   }, []);
 
   const updateQuantity = useCallback(async (item, quantity) => {
@@ -143,6 +160,24 @@ export function ShopProvider({ children }) {
     const authenticatedUser = await action(details);
     setUser(authenticatedUser);
     await Promise.all([refreshCart(), refreshOrders()]);
+    const pendingCartItem = sessionStorage.getItem('phonekh-pending-cart-item');
+    if (pendingCartItem) {
+      try {
+        const item = JSON.parse(pendingCartItem);
+        if (typeof item.productId !== 'string'
+          || !Number.isInteger(item.quantity)
+          || item.quantity < 1
+          || typeof item.color !== 'string') {
+          throw new Error('ព័ត៌មានទំនិញមិនត្រឹមត្រូវទេ។ សូមជ្រើសរើសផលិតផលម្ដងទៀត។');
+        }
+        const updatedCart = await addCartItem(item.productId, item.quantity, item.color);
+        setCart(updatedCart);
+        sessionStorage.removeItem('phonekh-pending-cart-item');
+      } catch (error) {
+        sessionStorage.removeItem('phonekh-pending-cart-item');
+        setApiError(error.message);
+      }
+    }
     return authenticatedUser;
   }, [refreshCart, refreshOrders]);
 
@@ -263,13 +298,13 @@ export function ShopProvider({ children }) {
   const cartTotal = cart.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
   const value = useMemo(() => ({
     products, setProducts, refreshProducts,
-    cart, setCart, addToCart, updateQuantity, removeFromCart, refreshCart, cartCount, cartTotal,
+    cart, setCart, addToCart, queueCartItem, updateQuantity, removeFromCart, refreshCart, cartCount, cartTotal,
     orders, setOrders, refreshOrders, placeOrder, cancelOrder, confirmRefundReceived, confirmOrderReceived,
     user, setUser, signIn, signUp, signOut, saveUserProfile,
     adminUsers, adminSummary, adminContactMessages, refreshAdmin, markContactMessageRead, replyToContactMessage, deleteContactMessage, setOrderStatus, setPaymentStatus, deleteOrder, markRefundSent,
     loading, apiError, setApiError,
   }), [
-    products, refreshProducts, cart, addToCart, updateQuantity, removeFromCart, refreshCart,
+    products, refreshProducts, cart, addToCart, queueCartItem, updateQuantity, removeFromCart, refreshCart,
     cartCount, cartTotal, orders, refreshOrders, placeOrder, cancelOrder, confirmRefundReceived, confirmOrderReceived, user, signIn, signUp, signOut, saveUserProfile,
     adminUsers, adminSummary, adminContactMessages, refreshAdmin, markContactMessageRead, replyToContactMessage, deleteContactMessage, setOrderStatus, setPaymentStatus, deleteOrder, markRefundSent, loading, apiError,
   ]);

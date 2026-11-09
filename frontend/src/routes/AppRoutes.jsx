@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import HomePage from '../pages/HomePage';
 import AboutPage from '../pages/AboutPage';
 import AdminPage from '../pages/AdminPage';
@@ -13,6 +13,18 @@ import {
   ProductsPage,
 } from '../pages/StorePages';
 import { TranslateTree } from '../context/LanguageProvider';
+import { useShop } from '../context/useShop';
+
+function RequireUser({ children }) {
+  const { user, loading } = useShop();
+  const location = useLocation();
+  if (loading) return <TranslateTree><main className="empty-state"><p className="loading-note">កំពុងផ្ទៀងផ្ទាត់គណនី...</p></main></TranslateTree>;
+  if (!user) {
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+  }
+  return children;
+}
 
 function AppRoutes() {
   return (
@@ -23,8 +35,8 @@ function AppRoutes() {
       <Route path="/chargers" element={<ProductsPage categoryDefault="Chargers" />} />
       <Route path="/search" element={<ProductsPage search />} />
       <Route path="/products/:id" element={<ProductDetailsPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/cart" element={<RequireUser><CartPage /></RequireUser>} />
+      <Route path="/checkout" element={<RequireUser><CheckoutPage /></RequireUser>} />
       <Route path="/order-complete/:id" element={<OrderCompletePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<LoginPage register />} />

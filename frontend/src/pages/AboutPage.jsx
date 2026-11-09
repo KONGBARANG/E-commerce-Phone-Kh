@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { TranslateTree } from '../context/LanguageProvider';
+import { useShop } from '../context/useShop';
+import { getProductImageUrl } from '../utils/productImage';
 
 const serviceHighlights = [
   {
@@ -20,17 +22,20 @@ const serviceHighlights = [
 ];
 
 function AboutPage() {
+  const { products } = useShop();
+  const phoneImage = products.find((product) => product.category?.toLowerCase() === 'smartphone' && product.image)?.image;
+
   return (
     <TranslateTree>
       <main className="about-page">
         <header className="about-hero">
           <div className="about-hero-content">
-            <span className="about-hero-pill"><i /> អំពី PHONE KH</span>
             <h1>បច្ចេកវិទ្យា សម្រាប់មនុស្សគ្រប់គ្នា</h1>
             <p>ជួយឱ្យការស្វែងរកទូរស័ព្ទ និងគ្រឿងបន្លាស់ដែលសាកសមនឹងអ្នក កាន់តែងាយស្រួល និងមានទំនុកចិត្ត។</p>
             <Link className="about-hero-link" to="/products">រុករកផលិតផល</Link>
           </div>
           <div className="about-hero-decoration" aria-hidden="true">
+            {phoneImage && <img className="about-hero-phone-background" src={getProductImageUrl(phoneImage, 800)} alt="" />}
             <span className="about-orbit about-orbit-one" />
             <span className="about-orbit about-orbit-two" />
             <div className="about-device-card"><span>PHONE</span><b>KH</b><i>TECH FOR EVERYONE</i></div>

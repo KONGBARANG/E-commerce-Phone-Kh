@@ -1,10 +1,20 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { getProductImageUrl } from '../utils/productImage';
 import { TranslateTree } from '../context/LanguageProvider';
+import { useShop } from '../context/useShop';
 
 function ProductCard({ product, addToCart }) {
+  const { user, queueCartItem } = useShop();
   const navigate = useNavigate();
   const outOfStock = Number(product.stock || 0) <= 0;
+  const handleAddToCart = () => {
+    if (!user) {
+      queueCartItem(product);
+      navigate(`/register?next=${encodeURIComponent('/cart')}`);
+      return;
+    }
+    addToCart(product);
+  };
 
   return (
     <TranslateTree><article className="product-card">
@@ -28,7 +38,7 @@ function ProductCard({ product, addToCart }) {
           <strong>${Number(product.price).toLocaleString()}</strong>
           {product.oldPrice && <del>${Number(product.oldPrice).toLocaleString()}</del>}
         </div>
-        <button className="add-button" disabled={outOfStock} onClick={() => product.colors?.length ? navigate(`/products/${product._id}`) : addToCart(product)}>
+        <button className="add-button" disabled={outOfStock} onClick={() => product.colors?.length ? navigate(`/products/${product._id}`) : handleAddToCart()}>
           {outOfStock ? 'អស់ស្តុក' : product.colors?.length ? 'ជ្រើសរើសពណ៌' : '＋ បន្ថែមទៅកន្ត្រក'}
         </button>
       </div>

@@ -83,7 +83,7 @@ function Navbar({ theme, themeMode, setThemeMode }) {
               </button>
             </div>
           </details>
-          <Link className="icon-link account-link" to={user ? '/account' : '/login'} aria-label={user ? `គណនី ${user.name}` : 'ចូលគណនី'}>
+          <Link className={`icon-link account-link ${user ? 'has-account' : ''}`} to={user ? '/account' : '/login'} aria-label={user ? `គណនី ${user.name}` : 'ចូលគណនី'}>
             <span className={`header-action-icon account-avatar-icon ${user?.profileImage ? 'has-profile-image' : ''}`} aria-hidden="true">
               {user?.profileImage
                 ? <img src={user.profileImage} alt="" />
@@ -91,7 +91,7 @@ function Navbar({ theme, themeMode, setThemeMode }) {
                   <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
                 </svg>}
             </span>
-            <span className="header-action-copy"><small>គណនី</small><b>{user ? user.name : 'ចូលគណនី'}</b></span>
+            <span className="header-action-copy account-action-copy"><small>គណនី</small><b>{user ? user.name : 'ចូលគណនី'}</b></span>
           </Link>
           <Link className="icon-link cart-link" to="/cart" aria-label={`កន្ត្រក ${cartCount} មុខ`}>
             <span className="header-action-icon" aria-hidden="true">

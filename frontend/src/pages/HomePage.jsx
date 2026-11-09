@@ -6,7 +6,7 @@ import { getProductImageUrl } from '../utils/productImage';
 import { TranslateTree } from '../context/LanguageProvider';
 
 function HomePage() {
-  const { products, addToCart, apiError, loading } = useShop();
+  const { products, addToCart, apiError, loading, user } = useShop();
   const phones = products.filter((product) => product.category?.toLowerCase() === 'smartphone');
   const featured = [...phones].sort((first, second) => Number(second.price) - Number(first.price)).slice(0, 4);
   const chargers = products.filter((product) => product.category?.toLowerCase() === 'chargers');
@@ -77,7 +77,7 @@ function HomePage() {
         {loading ? <p className="loading-note">កំពុងទាញផលិតផលពី Database...</p> : featured.length ? <div className="products-grid">{featured.map((product) => <ProductCard key={product._id} product={product} addToCart={addToCart} />)}</div> : <p className="loading-note">មិនមានផលិតផលក្នុង Database នៅឡើយទេ។</p>}
       </section>
 
-      <section className="promo-banner content-wrap"><div><span>PHONE KH MEMBER</span><h2>ទទួលបានបទពិសោធន៍<br />ទិញទំនិញកាន់តែប្រសើរ</h2><p>ចូលរួមជាមួយយើង ដើម្បីទទួលបានព័ត៌មានថ្មីៗ និងការផ្ដល់ជូនពិសេស។</p><Link className="button-light" to="/register">បង្កើតគណនីឥឡូវនេះ</Link></div><div className="promo-art">PHONE<br /><strong>KH</strong></div></section>
+      {!user && <section className="promo-banner content-wrap"><div><span>PHONE KH MEMBER</span><h2>ទទួលបានបទពិសោធន៍<br />ទិញទំនិញកាន់តែប្រសើរ</h2><p>ចូលរួមជាមួយយើង ដើម្បីទទួលបានព័ត៌មានថ្មីៗ និងការផ្ដល់ជូនពិសេស។</p><Link className="button-light" to="/register">បង្កើតគណនីឥឡូវនេះ</Link></div><div className="promo-art">PHONE<br /><strong>KH</strong></div></section>}
     </main></TranslateTree>
   );
 }
