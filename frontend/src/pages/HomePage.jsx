@@ -25,7 +25,6 @@ function HomePage() {
     <TranslateTree><main>
       <section className="hero-wrap">
         <div className="hero-copy">
-          <div className="eyebrow"><span /> សូមស្វាគមន៍មកកាន់ PHONE KH</div>
           <h1>បច្ចេកវិទ្យា<br />ដែលអ្នក <em>ស្រឡាញ់</em></h1>
           <p>ស្វែងរកទូរស័ព្ទ និងឧបករណ៍បច្ចេកវិទ្យាថ្មីៗ តម្លៃល្អបំផុត និងសេវាកម្មដែលអ្នកទុកចិត្តបាន។</p>
           <div className="hero-buttons"><Link className="button-primary" to="/phones">ទិញទំនិញឥឡូវនេះ</Link><Link className="text-link" to="/about">ស្វែងយល់បន្ថែម</Link></div>
