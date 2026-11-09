@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 import CartIcon from '../components/CartIcon';
+import LanguagePicker from '../components/LanguagePicker';
 import { TranslateTree } from '../context/LanguageProvider';
-import { useLanguage } from '../context/useLanguage';
 import { createProduct as saveProduct, deleteProduct as removeProduct, fetchAdminPaymentReceipt, fetchAdminRefundQr, setProduct, setUserRole } from '../services/api';
 
 const defaultProductImage = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85';
@@ -51,7 +51,6 @@ const sections = [
 ];
 
 function AdminPage() {
-  const { language, setLanguage } = useLanguage();
   const {
     products, refreshProducts, orders, user, adminUsers, adminSummary, adminContactMessages,
     refreshAdmin, markContactMessageRead, replyToContactMessage, deleteContactMessage, setOrderStatus, setPaymentStatus, deleteOrder, markRefundSent, loading,
@@ -640,13 +639,7 @@ function AdminPage() {
               <div><small>PHONE KH / ADMIN</small><h1>{active.label}</h1></div>
             </div>
             <div className="admin-topbar-actions">
-              <details className="theme-picker language-picker">
-                <summary aria-label="Language" title="Language"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg></summary>
-                <div className="theme-menu language-menu" role="group" aria-label="Select language">
-                  <button type="button" className={language === 'km' ? 'active' : ''} aria-pressed={language === 'km'} onClick={(event) => { setLanguage('km'); event.currentTarget.closest('details')?.removeAttribute('open'); }}><span>Khmer</span>{language === 'km' && <b aria-hidden="true">&#10003;</b>}</button>
-                  <button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={(event) => { setLanguage('en'); event.currentTarget.closest('details')?.removeAttribute('open'); }}><span>English</span>{language === 'en' && <b aria-hidden="true">&#10003;</b>}</button>
-                </div>
-              </details>
+              <LanguagePicker />
               <Link className="admin-view-store" to="/">មើលហាង</Link>
             </div>
           </header>
