@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useShop } from '../context/useShop';
 import CartIcon from '../components/CartIcon';
 import LanguagePicker from '../components/LanguagePicker';
+import ThemePicker from '../components/ThemePicker';
 import { TranslateTree } from '../context/LanguageProvider';
 import { createProduct as saveProduct, deleteProduct as removeProduct, fetchAdminPaymentReceipt, fetchAdminRefundQr, setProduct, setUserRole } from '../services/api';
 
@@ -582,7 +583,7 @@ function AdminPage() {
       <main className={`admin-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <aside className="admin-sidebar" id="admin-sidebar">
           <div className="admin-brand">
-            <span className="brand-mark">P</span>
+            <span className="brand-mark"><img src="/phonekh-favicon.jpg" alt="" /></span>
             <div className="admin-brand-copy"><b>PHONE KH</b><small>ADMIN PANEL</small></div>
           </div>
           <div className="admin-menu-label">MENU</div>
@@ -640,6 +641,7 @@ function AdminPage() {
             </div>
             <div className="admin-topbar-actions">
               <LanguagePicker />
+              <ThemePicker />
               <Link className="admin-view-store" to="/">មើលហាង</Link>
             </div>
           </header>
