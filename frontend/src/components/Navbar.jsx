@@ -20,7 +20,7 @@ function Navbar({ theme, themeMode, setThemeMode }) {
       <div className="topline">ដឹកជញ្ជូនឥតគិតថ្លៃ សម្រាប់ការកុម្ម៉ង់លើស $300 <span>•</span> សេវាបម្រើ 7 ថ្ងៃក្នុងមួយសប្ដាហ៍</div>
       <header className="site-header">
         <Link className="brand" to="/" aria-label="PHONE KH homepage">
-          <span className="brand-mark">P</span>
+          <span className="brand-mark"><img src="/phonekh-favicon.jpg" alt="" /></span>
           <span>PHONE<span className="brand-accent">KH</span><small>TECH FOR EVERYONE</small></span>
         </Link>
         <nav className="primary-nav" aria-label="Main navigation">
