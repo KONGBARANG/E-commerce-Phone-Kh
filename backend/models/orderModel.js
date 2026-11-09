@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    cartTokenHash: { type: String, required: true, select: false },
+    cartTokenHash: { type: String, required: function requireGuestCartToken() { return !this.user; }, select: false },
     customer: { type: String, required: true, trim: true },
     email: { type: String, default: '', lowercase: true, trim: true },
     phone: { type: String, required: true, trim: true },
