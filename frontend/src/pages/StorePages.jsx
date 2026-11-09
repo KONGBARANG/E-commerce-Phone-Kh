@@ -6,12 +6,33 @@ import { useShop } from '../context/useShop';
 import { fetchMyContactMessages, fetchOrder, replyToMyContactMessage, submitContactMessage, validateCoupon } from '../services/api';
 import { getProductImageUrl } from '../utils/productImage';
 import { TranslateTree } from '../context/LanguageProvider';
+import { QRCodeSVG } from 'qrcode.react';
 
 const money = (amount) => `$${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function PageIntro({ eyebrow, title, description }) {
   return <header className="page-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</header>;
 }
+
+function SocialIcon({ platform }) {
+  if (platform === 'Facebook') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.3V13h2.8v8h3.4Z" /></svg>;
+  }
+  if (platform === 'Telegram') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.7 4.2-3.1 15c-.2 1.1-.9 1.3-1.8.8l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L5 12.6l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6L19.4 2c.9-.3 1.7.2 1.3 2.2Z" /></svg>;
+  }
+  if (platform === 'TikTok') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.8 7.2a5.7 5.7 0 0 1-3.4-1.1v8.2a5.8 5.8 0 1 1-5-5.7v3.2a2.7 2.7 0 1 0 1.8 2.5V2.5h3.2c.2 2 1.5 3.5 3.4 3.9v.8Z" /></svg>;
+  }
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 7a3 3 0 0 0-2.1-2.1C19.5 4.4 12 4.4 12 4.4s-7.5 0-9.4.5A3 3 0 0 0 .5 7 31 31 0 0 0 0 12a31 31 0 0 0 .5 5 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-5 31 31 0 0 0-.5-5ZM9.6 15.8V8.2l6.3 3.8-6.3 3.8Z" /></svg>;
+}
+
+const socialPlatforms = [
+  { name: 'Facebook', url: 'https://www.facebook.com/share/1eKeZuuZTz/' },
+  { name: 'Telegram', url: 'https://t.me/phonekh2026' },
+  { name: 'TikTok', url: 'https://www.tiktok.com/@phonekh2026?is_from_webapp=1&sender_device=pc' },
+  { name: 'YouTube', url: 'https://www.youtube.com/@phonekh2026' },
+];
 
 async function prepareProfileImage(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
@@ -154,14 +175,14 @@ export function ProductsPage({ search = false, categoryDefault = '' }) {
 
 export function ProductDetailsPage() {
   const { id } = useParams();
-  const { products, addToCart, loading } = useShop();
+  const { products, addToCart, queueCartItem, user, loading } = useShop();
   const product = products.find((item) => item._id === id);
   if (loading) return <TranslateTree><main className="empty-state"><p className="loading-note">កំពុងទាញព័ត៌មានផលិតផល...</p></main></TranslateTree>;
   if (!product) return <TranslateTree><div className="empty-state"><h2>រកមិនឃើញផលិតផល</h2><Link className="button-primary" to="/products">ត្រឡប់ទៅផលិតផល</Link></div></TranslateTree>;
-  return <ProductDetails key={product._id} product={product} addToCart={addToCart} />;
+  return <ProductDetails key={product._id} product={product} addToCart={addToCart} queueCartItem={queueCartItem} user={user} />;
 }
 
-function ProductDetails({ product, addToCart }) {
+function ProductDetails({ product, addToCart, queueCartItem, user }) {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -170,7 +191,15 @@ function ProductDetails({ product, addToCart }) {
   const images = [...new Set([product.image, ...(product.images || [])].filter(Boolean))].slice(0, 4);
   const stock = Number(product.stock || 0);
   const outOfStock = stock <= 0;
-  const addSelectedToCart = () => outOfStock ? null : addToCart(product, quantity, selectedColor);
+  const addSelectedToCart = (destination) => {
+    if (outOfStock) return null;
+    if (!user) {
+      queueCartItem(product, quantity, selectedColor);
+      navigate(`/register?next=${encodeURIComponent(destination)}`);
+      return null;
+    }
+    return addToCart(product, quantity, selectedColor);
+  };
 
   useEffect(() => {
     if (images.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
@@ -199,8 +228,8 @@ function ProductDetails({ product, addToCart }) {
           <p className="detail-description">{product.description || 'ផលិតផលគុណភាពខ្ពស់ មានការធានាពេញលេញ និងរួចរាល់សម្រាប់ដឹកជញ្ជូន។'}</p>
           {product.colors?.length > 0 && <fieldset className="color-options"><legend>ជ្រើសរើសពណ៌ <span>{selectedColor}</span></legend><div>{product.colors.map((color) => <button className={selectedColor === color ? 'selected' : ''} type="button" onClick={() => { setSelectedColor(color); setSelectedImage(0); }} aria-pressed={selectedColor === color} key={color}>{color}</button>)}</div></fieldset>}
           <div className="spec-grid">{product.category === 'Chargers' ? <div><small>កម្លាំងសាក / លក្ខណៈ</small><b>{product.storage || '—'}</b></div> : <><div><small>អង្គផ្ទុកទិន្នន័យ</small><b>{product.storage || '—'}</b></div><div><small>RAM</small><b>{product.ram || '—'}</b></div></>}<div><small>ស្តុក</small><b>{product.stock > 0 ? `${product.stock} គ្រឿង` : 'ទាក់ទងមកយើង'}</b></div></div>
-          <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" disabled={quantity <= 1} onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" disabled={quantity >= stock} onClick={() => setQuantity(Math.min(stock, quantity + 1))}>＋</button></div><button className="button-primary" disabled={outOfStock} onClick={addSelectedToCart}>{outOfStock ? 'អស់ស្តុក' : 'បន្ថែមទៅកន្ត្រក'}</button></div>
-          <button className="button-outline full-button" disabled={outOfStock} onClick={async () => { const updated = await addSelectedToCart(); if (updated) navigate('/checkout'); }}>{outOfStock ? 'អស់ស្តុក' : 'ទិញឥឡូវនេះ'}</button>
+          <div className="detail-buy"><div className="quantity-picker"><button aria-label="បន្ថយចំនួន" disabled={quantity <= 1} onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button aria-label="បង្កើនចំនួន" disabled={quantity >= stock} onClick={() => setQuantity(Math.min(stock, quantity + 1))}>＋</button></div><button className="button-primary" disabled={outOfStock} onClick={() => addSelectedToCart('/cart')}>{outOfStock ? 'អស់ស្តុក' : 'បន្ថែមទៅកន្ត្រក'}</button></div>
+          <button className="button-outline full-button" disabled={outOfStock} onClick={async () => { const updated = await addSelectedToCart('/checkout'); if (updated) navigate('/checkout'); }}>{outOfStock ? 'អស់ស្តុក' : 'ទិញឥឡូវនេះ'}</button>
         </div>
       </div>
     </main></TranslateTree>
@@ -387,6 +416,12 @@ export function LoginPage({ register = false }) {
   const { signIn, signUp } = useShop();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const requestedNext = params.get('next');
+  const nextPath = requestedNext?.startsWith('/')
+    && !requestedNext.startsWith('//')
+    && !requestedNext.includes('\\')
+    ? requestedNext
+    : '/account';
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const submit = async (event) => {
@@ -408,15 +443,16 @@ export function LoginPage({ register = false }) {
       } else {
         await signIn(credentials);
       }
-      navigate(params.get('next') || '/account', { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
       setSubmitting(false);
     }
   };
-  return <TranslateTree><main className="auth-page"><div className="auth-art"><span className="eyebrow">PHONE KH MEMBERS</span><h2>ពិភពបច្ចេកវិទ្យា<br />ចាប់ផ្ដើមពីទីនេះ</h2><p>ចូលរួមជាមួយ PHONE KH និងទទួលបានបទពិសោធន៍ទិញទំនិញកាន់តែងាយស្រួល។</p><div className="auth-art-mark">P<span>K</span></div></div><form className="auth-form" onSubmit={submit}><span className="eyebrow">{register ? 'បង្កើតគណនីថ្មី' : 'សូមស្វាគមន៍ត្រឡប់មកវិញ'}</span><h1>{register ? 'ចូលរួមជាមួយយើង' : 'ចូលគណនីរបស់អ្នក'}</h1><p>បញ្ចូលព័ត៌មានរបស់អ្នកដើម្បីបន្ត</p>{error && <div className="form-error">{error}</div>}
-    {register && <label>ឈ្មោះពេញ<input required name="name" placeholder="ឈ្មោះរបស់អ្នក" /></label>}<label>អ៊ីមែល<input required name="email" type="email" placeholder="you@example.com" /></label>{register && <label>លេខទូរស័ព្ទ<input name="phone" type="tel" placeholder="+855 12 345 678" /></label>}<label>ពាក្យសម្ងាត់<input required name="password" type="password" minLength="6" placeholder="យ៉ាងតិច 6 តួអក្សរ" /></label><button className="button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'កំពុងរក្សាទុក...' : register ? 'បង្កើតគណនី' : 'ចូលគណនី'}</button><div className="auth-switch">{register ? 'មានគណនីរួចហើយ?' : 'មិនទាន់មានគណនី?'} <Link to={register ? '/login' : '/register'}>{register ? 'ចូលគណនី' : 'ចុះឈ្មោះឥឡូវនេះ'}</Link></div><small className="demo-notice">គណនី និងពាក្យសម្ងាត់ត្រូវបានផ្ទៀងផ្ទាត់ និងរក្សាទុកដោយ backend។</small></form></main></TranslateTree>;
+  const authSwitchPath = `${register ? '/login' : '/register'}?next=${encodeURIComponent(nextPath)}`;
+  return <TranslateTree><main className="auth-page"><div className="auth-art"><span className="eyebrow">PHONE KH MEMBERS</span><h2>ពិភពបច្ចេកវិទ្យា<br />ចាប់ផ្ដើមពីទីនេះ</h2><p>ចូលរួមជាមួយ PHONE KH និងទទួលបានបទពិសោធន៍ទិញទំនិញកាន់តែងាយស្រួល។</p><div className="auth-art-mark">P<span>K</span></div></div><form className="auth-form" onSubmit={submit}><span className="eyebrow">{register ? 'បង្កើតគណនីថ្មី' : 'សូមស្វាគមន៍ត្រឡប់មកវិញ'}</span><h1>{register ? 'ចូលរួមជាមួយយើង' : 'ចូលគណនីរបស់អ្នក'}</h1><p>{nextPath === '/cart' || nextPath.startsWith('/checkout') ? 'សូមចូលគណនី ឬបង្កើតគណនី ដើម្បីបន្តការទិញទំនិញរបស់អ្នក។' : 'បញ្ចូលព័ត៌មានរបស់អ្នកដើម្បីបន្ត'}</p>{error && <div className="form-error">{error}</div>}
+    {register && <label>ឈ្មោះពេញ<input required name="name" placeholder="ឈ្មោះរបស់អ្នក" /></label>}<label>អ៊ីមែល<input required name="email" type="email" placeholder="you@example.com" /></label>{register && <label>លេខទូរស័ព្ទ<input name="phone" type="tel" placeholder="+855 12 345 678" /></label>}<label>ពាក្យសម្ងាត់<input required name="password" type="password" minLength="6" placeholder="យ៉ាងតិច 6 តួអក្សរ" /></label><button className="button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'កំពុងរក្សាទុក...' : register ? 'បង្កើតគណនី' : 'ចូលគណនី'}</button><div className="auth-switch">{register ? 'មានគណនីរួចហើយ?' : 'មិនទាន់មានគណនី?'} <Link to={authSwitchPath}>{register ? 'ចូលគណនី' : 'ចុះឈ្មោះឥឡូវនេះ'}</Link></div><small className="demo-notice">គណនី និងពាក្យសម្ងាត់ត្រូវបានផ្ទៀងផ្ទាត់ និងរក្សាទុកដោយ backend។</small></form></main></TranslateTree>;
 }
 
 export function AccountPage() {
@@ -644,5 +680,58 @@ export function ContactPage() {
       setSubmitting(false);
     }
   };
-  return <TranslateTree><main className="content-wrap contact-page"><PageIntro eyebrow="យើងនៅទីនេះដើម្បីជួយអ្នក" title="ទាក់ទងមកយើង" description="មានសំណួរ ឬត្រូវការជំនួយ? ផ្ញើសារមកកាន់ក្រុមការងាររបស់យើង។" /><div className="contact-layout"><div className="contact-info"><h2>យើងរីករាយក្នុងការជួយអ្នក</h2><p>ទាក់ទងមកក្រុមការងារ PHONE KH តាមរយៈវិធីណាមួយខាងក្រោម។</p><div><b>⌖ &nbsp; អាសយដ្ឋាន</b><span>រាជធានីភ្នំពេញ, កម្ពុជា</span></div><div><b>☎ &nbsp; ទូរស័ព្ទ</b><span>+855 12 345 678</span></div><div><b>✉ &nbsp; អ៊ីមែល</b><span>hello@phonekh.com</span></div><div><b>◷ &nbsp; ម៉ោងធ្វើការ</b><span>រៀងរាល់ថ្ងៃ 8:00 ព្រឹក – 8:00 យប់</span></div></div>{user ? <form className="contact-form" onSubmit={sendMessage}><h2>ផ្ញើសារមកយើង</h2><p className="contact-reply-hint">យើងនឹងឆ្លើយតបនៅក្នុងទំព័រ <Link to="/account">គណនីរបស់អ្នក</Link>។</p>{sent && <div className="success-box" role="status">សាររបស់អ្នកត្រូវបានផ្ញើទៅកាន់ Admin ដោយជោគជ័យ។ យើងនឹងទាក់ទងទៅអ្នកវិញឆាប់ៗនេះ។</div>}{error && <div className="form-error" role="alert">{error}</div>}<label>ឈ្មោះ<input value={user.name} readOnly /></label><label>អ៊ីមែល<input value={user.email} readOnly /></label><label>សាររបស់អ្នក<textarea name="message" required maxLength="5000" rows="5" placeholder="តើអ្នកត្រូវការជំនួយអ្វី?" /></label><button className="button-primary" type="submit" disabled={submitting}>{submitting ? 'កំពុងផ្ញើ...' : 'ផ្ញើសារ'}</button></form> : <section className="contact-form contact-login-prompt"><h2>ចូលគណនីដើម្បីផ្ញើសារ</h2><p>សូមចូលគណនី ឬបង្កើតគណនី ដើម្បីឲ្យយើងអាចឆ្លើយតបក្នុងទំព័រគណនីរបស់អ្នក។</p><div><Link className="button-primary" to="/login">ចូលគណនី</Link><Link className="text-link" to="/register">បង្កើតគណនីថ្មី</Link></div></section>}</div></main></TranslateTree>;
+  const contactUrl = new URL('/contact', window.location.origin).toString();
+  return (
+    <TranslateTree>
+      <main className="content-wrap contact-page">
+        <PageIntro eyebrow="យើងនៅទីនេះដើម្បីជួយអ្នក" title="ទាក់ទងមកយើង" description="មានសំណួរ ឬត្រូវការជំនួយ? ផ្ញើសារមកកាន់ក្រុមការងាររបស់យើង។" />
+        <div className="contact-layout">
+          <div className="contact-info">
+            <h2>យើងរីករាយក្នុងការជួយអ្នក</h2>
+            <p>ទាក់ទងមកក្រុមការងារ PHONE KH តាមរយៈវិធីណាមួយខាងក្រោម។</p>
+            <div><b>⌖ &nbsp; អាសយដ្ឋាន</b><span>រាជធានីភ្នំពេញ, កម្ពុជា</span></div>
+            <div><b>☎ &nbsp; ទូរស័ព្ទ</b><span>+855 12 345 678</span></div>
+            <div><b>✉ &nbsp; អ៊ីមែល</b><span>hello@phonekh.com</span></div>
+            <div><b>◷ &nbsp; ម៉ោងធ្វើការ</b><span>រៀងរាល់ថ្ងៃ 8:00 ព្រឹក – 8:00 យប់</span></div>
+          </div>
+          {user ? (
+            <form className="contact-form" onSubmit={sendMessage}>
+              <h2>ផ្ញើសារមកយើង</h2>
+              <p className="contact-reply-hint">យើងនឹងឆ្លើយតបនៅក្នុងទំព័រ <Link to="/account">គណនីរបស់អ្នក</Link>។</p>
+              {sent && <div className="success-box" role="status">សាររបស់អ្នកត្រូវបានផ្ញើទៅកាន់ Admin ដោយជោគជ័យ។ យើងនឹងទាក់ទងទៅអ្នកវិញឆាប់ៗនេះ។</div>}
+              {error && <div className="form-error" role="alert">{error}</div>}
+              <label>ឈ្មោះ<input value={user.name} readOnly /></label>
+              <label>អ៊ីមែល<input value={user.email} readOnly /></label>
+              <label>សាររបស់អ្នក<textarea name="message" required maxLength="5000" rows="5" placeholder="តើអ្នកត្រូវការជំនួយអ្វី?" /></label>
+              <button className="button-primary" type="submit" disabled={submitting}>{submitting ? 'កំពុងផ្ញើ...' : 'ផ្ញើសារ'}</button>
+            </form>
+          ) : (
+            <section className="contact-form contact-login-prompt">
+              <h2>ចូលគណនីដើម្បីផ្ញើសារ</h2>
+              <p>សូមចូលគណនី ឬបង្កើតគណនី ដើម្បីឲ្យយើងអាចឆ្លើយតបក្នុងទំព័រគណនីរបស់អ្នក។</p>
+              <div><Link className="button-primary" to="/login">ចូលគណនី</Link><Link className="text-link" to="/register">បង្កើតគណនីថ្មី</Link></div>
+            </section>
+          )}
+        </div>
+        <section className="contact-social-panel" aria-labelledby="contact-socials-title">
+          <div className="contact-socials">
+            <h2 id="contact-socials-title">តាមដានយើងនៅលើបណ្តាញសង្គម</h2>
+            <p>ភ្ជាប់ទំនាក់ទំនងជាមួយ PHONE KH តាមរយៈបណ្តាញសង្គមរបស់យើង។</p>
+            <div className="contact-social-list">
+              {socialPlatforms.map(({ name, url }) => (
+                <a className="contact-social-item" href={url} key={name} target="_blank" rel="noopener noreferrer" aria-label={`PHONE KH on ${name}`}>
+                  <span className={`contact-social-icon contact-social-${name.toLowerCase()}`}><SocialIcon platform={name} /></span>
+                  <b>{name}</b>
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="contact-qr">
+            <QRCodeSVG value={contactUrl} size={156} level="M" includeMargin title="QR code for PHONE KH contact page" />
+            <h3>ស្កេន QR ដើម្បីបើកទំព័រទំនាក់ទំនង</h3>
+          </div>
+        </section>
+      </main>
+    </TranslateTree>
+  );
 }

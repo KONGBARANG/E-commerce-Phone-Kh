@@ -19,7 +19,7 @@ const { optionalAuth, requireAdmin, requireAuth } = require('../utils/auth');
 const validateObjectBody = require('../middleware/validateObjectBody');
 
 const router = express.Router();
-router.post('/', optionalAuth, validateObjectBody, createOrder);
+router.post('/', requireAuth, validateObjectBody, createOrder);
 router.get('/mine', requireAuth, getMyOrders);
 router.patch('/mine/:orderNumber/cancel', requireAuth, validateObjectBody, cancelMyOrder);
 router.patch('/mine/:orderNumber/refund-received', requireAuth, validateObjectBody, confirmOrderRefundReceived);
