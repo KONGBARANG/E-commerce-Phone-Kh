@@ -55,11 +55,10 @@ html[data-theme='dark'], body[data-theme='dark'] { background: #080f19; }
 .language-menu { width: 145px; }
 .language-picker > summary { border-radius: 10px; transition: color .18s, background-color .18s, border-color .18s, box-shadow .18s; }
 .language-picker > summary:focus-visible { outline: 2px solid #77a9ff; outline-offset: 4px; }
-.language-flag { width: 34px; height: 23px; display: block; overflow: hidden; border: 1px solid rgba(21,39,61,.16); border-radius: 3px; box-shadow: 0 1px 2px rgba(21,39,61,.1); }
-.language-picker > summary .language-flag svg { width: 100%; height: 100%; display: block; }
+.language-flag { width: 34px; height: 23px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(21,39,61,.16); border-radius: 3px; box-shadow: 0 1px 2px rgba(21,39,61,.1); }
+.language-flag img { display: block; width: 100%; height: 100%; object-fit: fill; }
 .language-menu button { gap: 11px; }
 .language-menu .language-flag { width: 27px; height: 19px; flex: 0 0 27px; }
-.language-menu button .language-flag svg { width: 100%; height: 100%; display: block; }
 .icon-link { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 7px 10px; color: #57667a; background: #fff; border: 1px solid var(--line); border-radius: 10px; transition: border-color .2s, background .2s, transform .2s; }
 .icon-link:hover { transform: translateY(-1px); border-color: #cbdcff; background: #f8faff; }
 .account-link { gap: 10px; padding: 5px 12px 5px 6px; border-radius: 999px; }
